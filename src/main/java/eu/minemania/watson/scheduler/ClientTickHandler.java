@@ -3,6 +3,7 @@ package eu.minemania.watson.scheduler;
 import eu.minemania.watson.Reference;
 import eu.minemania.watson.chat.ChatMessage;
 import eu.minemania.watson.config.Configs;
+import eu.minemania.watson.config.Plugins;
 import eu.minemania.watson.data.DataManager;
 import fi.dy.masa.malilib.interfaces.IClientTickHandler;
 import net.minecraft.client.Minecraft;
@@ -12,14 +13,25 @@ public class ClientTickHandler implements IClientTickHandler
     @Override
     public void onClientTick(Minecraft mc)
     {
-        if (mc.world != null && mc.player != null)
+        if (mc.level != null && mc.player != null)
         {
             SyncTaskQueue.getInstance().runTasks();
             ChatMessage.getInstance().processServerChatQueue();
-            if(DataManager.getClientTickStartTime() != 0 && System.currentTimeMillis() - DataManager.getClientTickStartTime() > 1000)
+            if (DataManager.getClientTickStartTime() != 0 && System.currentTimeMillis() - DataManager.getClientTickStartTime() > 1000)
             {
-                ChatMessage.localOutputT("watson.message.join.watson", Reference.MOD_VERSION, Configs.Generic.WATSON_PREFIX.getStringValue(), true);
-                ChatMessage.localOutputT("watson.message.join.plugin");
+                if (!Configs.Messages.DISABLE_JOIN_MESSAGES.getBooleanValue())
+                {
+                    ChatMessage.localOutputT("watson.message.join.watson.info", Reference.MOD_VERSION, Configs.Generic.WATSON_PREFIX.getStringValue(), true);
+                    if (Configs.Plugin.PLUGIN.getOptionListValue() == Plugins.LEDGER)
+                    {
+                        ChatMessage.localOutputT("watson.message.join.ledger.info");
+                        ChatMessage.localOutputT("watson.message.join.ledger.nomessage");
+                    }
+                    else
+                    {
+                        ChatMessage.localOutputT("watson.message.join.plugin.info");
+                    }
+                }
                 DataManager.setClientTick(0);
             }
         }

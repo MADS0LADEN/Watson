@@ -14,12 +14,13 @@ import eu.minemania.watson.db.WatsonBlock;
 import eu.minemania.watson.db.WatsonBlockRegistery;
 import eu.minemania.watson.scheduler.SyncTaskQueue;
 import eu.minemania.watson.scheduler.tasks.AddBlockEditTask;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.ChatFormatting;
 
 public class LbCoordsAnalysis extends Analysis
 {
-    protected static final TextFormatting _COLOUR_CYCLE[] = {Color.red.getColor(), Color.gold.getColor(), Color.yellow.getColor(), Color.green.getColor(), Color.aqua.getColor(), Color.darkpurple.getColor(), Color.lightpurple.getColor()};
+    protected static final ChatFormatting _COLOUR_CYCLE[] = {Color.red.getColor(), Color.gold.getColor(), Color.yellow.getColor(), Color.green.getColor(), Color.aqua.getColor(), Color.darkpurple.getColor(), Color.lightpurple.getColor()};
     protected int _colourIndex = _COLOUR_CYCLE.length - 1;
     protected static final float _COLOUR_PROXIMITY_LIMIT = 4.0f;
     protected int _lastX, _lastY, _lastZ;
@@ -32,7 +33,7 @@ public class LbCoordsAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_COORD_POSITION, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbCoordPosition(chat, m);
                 return false;
@@ -42,7 +43,7 @@ public class LbCoordsAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_COORD, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbCoord(chat, m);
                 return false;
@@ -52,7 +53,7 @@ public class LbCoordsAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_KILLS, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbKills(chat, m);
                 return true;
@@ -62,7 +63,7 @@ public class LbCoordsAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_COORD_KILLS, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbCoordKills(chat, m);
                 return false;
@@ -72,7 +73,7 @@ public class LbCoordsAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_COORD_REPLACED, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbCoordReplaced(chat, m);
                 return false;
@@ -82,7 +83,7 @@ public class LbCoordsAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_PAGE, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbPage(chat, m);
                 return true;
@@ -92,7 +93,7 @@ public class LbCoordsAnalysis extends Analysis
         IMatchedChatHandler headerHandler = new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbHeader(chat, m);
                 return true;
@@ -111,7 +112,7 @@ public class LbCoordsAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_HEADER_BLOCK, headerHandler);
     }
 
-    void lbCoord(ITextComponent chat, Matcher m)
+    void lbCoord(Component chat, Matcher m)
     {
         try
         {
@@ -149,8 +150,8 @@ public class LbCoordsAnalysis extends Analysis
             BlockEdit edit = new BlockEdit(millis, player, created, x, y, z, type, _world);
             SyncTaskQueue.getInstance().addTask(new AddBlockEditTask(edit, true));
 
-            TextFormatting color = Configs.Generic.RECOLOR_QUERY_RESULTS.getBooleanValue() ? getChatColorFormat(x, y, z) : null;
-            if (Configs.Generic.REFORMAT_QUERY_RESULTS.getBooleanValue())
+            ChatFormatting color = Configs.Plugin.RECOLOR_QUERY_RESULTS.getBooleanValue() ? getChatColorFormat(x, y, z) : null;
+            if (Configs.Plugin.REFORMAT_QUERY_RESULTS.getBooleanValue())
             {
                 if (!type.getName().equals("minecraft:stone"))
                 {
@@ -163,9 +164,9 @@ public class LbCoordsAnalysis extends Analysis
             }
             else
             {
-                if (Configs.Generic.RECOLOR_QUERY_RESULTS.getBooleanValue())
+                if (Configs.Plugin.RECOLOR_QUERY_RESULTS.getBooleanValue())
                 {
-                    ChatMessage.sendToLocalChat(color, null, chat.getUnformattedComponentText(), true);
+                    ChatMessage.sendToLocalChat(color, null, chat.getString(), true);
                 }
                 else
                 {
@@ -181,17 +182,17 @@ public class LbCoordsAnalysis extends Analysis
         }
     }
 
-    void lbKills(ITextComponent chat, Matcher m)
+    void lbKills(Component chat, Matcher m)
     {
         _world = m.group(1);
     }
 
-    void lbCoordPosition(ITextComponent chat, Matcher m)
+    void lbCoordPosition(Component chat, Matcher m)
     {
         _world = m.group(1);
     }
 
-    void lbCoordKills(ITextComponent chat, Matcher m)
+    void lbCoordKills(Component chat, Matcher m)
     {
         try
         {
@@ -214,8 +215,8 @@ public class LbCoordsAnalysis extends Analysis
             BlockEdit edit = new BlockEdit(millis, player, false, x, y, z, type, _world);
             SyncTaskQueue.getInstance().addTask(new AddBlockEditTask(edit, true));
 
-            TextFormatting color = Configs.Generic.RECOLOR_QUERY_RESULTS.getBooleanValue() ? getChatColorFormat(x, y, z) : null;
-            if (Configs.Generic.REFORMAT_QUERY_RESULTS.getBooleanValue())
+            ChatFormatting color = Configs.Plugin.RECOLOR_QUERY_RESULTS.getBooleanValue() ? getChatColorFormat(x, y, z) : null;
+            if (Configs.Plugin.REFORMAT_QUERY_RESULTS.getBooleanValue())
             {
 
                 if (!type.getName().equals("minecraft:stone"))
@@ -227,9 +228,9 @@ public class LbCoordsAnalysis extends Analysis
             }
             else
             {
-                if (Configs.Generic.RECOLOR_QUERY_RESULTS.getBooleanValue())
+                if (Configs.Plugin.RECOLOR_QUERY_RESULTS.getBooleanValue())
                 {
-                    ChatMessage.sendToLocalChat(color, null, chat.getUnformattedComponentText(), true);
+                    ChatMessage.sendToLocalChat(color, null, chat.getString(), true);
                 }
                 else
                 {
@@ -245,7 +246,7 @@ public class LbCoordsAnalysis extends Analysis
         }
     }
 
-    void lbCoordReplaced(ITextComponent chat, Matcher m)
+    void lbCoordReplaced(Component chat, Matcher m)
     {
         try
         {
@@ -267,8 +268,8 @@ public class LbCoordsAnalysis extends Analysis
             BlockEdit edit = new BlockEdit(millis, player, false, x, y, z, type, _world);
             SyncTaskQueue.getInstance().addTask(new AddBlockEditTask(edit, true));
 
-            TextFormatting color = Configs.Generic.RECOLOR_QUERY_RESULTS.getBooleanValue() ? getChatColorFormat(x, y, z) : null;
-            if (Configs.Generic.REFORMAT_QUERY_RESULTS.getBooleanValue())
+            ChatFormatting color = Configs.Plugin.RECOLOR_QUERY_RESULTS.getBooleanValue() ? getChatColorFormat(x, y, z) : null;
+            if (Configs.Plugin.REFORMAT_QUERY_RESULTS.getBooleanValue())
             {
                 if (!type.getName().equals("minecraft:stone"))
                 {
@@ -280,9 +281,9 @@ public class LbCoordsAnalysis extends Analysis
             }
             else
             {
-                if (Configs.Generic.RECOLOR_QUERY_RESULTS.getBooleanValue())
+                if (Configs.Plugin.RECOLOR_QUERY_RESULTS.getBooleanValue())
                 {
-                    ChatMessage.sendToLocalChat(color, null, chat.getUnformattedComponentText(), true);
+                    ChatMessage.sendToLocalChat(color, null, chat.getString(), true);
                 }
                 else
                 {
@@ -296,12 +297,12 @@ public class LbCoordsAnalysis extends Analysis
         }
     }
 
-    void lbPage(ITextComponent chat, Matcher m)
+    void lbPage(Component chat, Matcher m)
     {
         int currentPage = Integer.parseInt(m.group(1));
         int pageCount = Integer.parseInt(m.group(2));
 
-        if (pageCount <= Configs.Generic.MAX_AUTO_PAGES.getIntegerValue())
+        if (pageCount <= Configs.Plugin.MAX_AUTO_PAGES.getIntegerValue())
         {
             _currentPage = currentPage;
             _pageCount = pageCount;
@@ -312,16 +313,16 @@ public class LbCoordsAnalysis extends Analysis
         }
     }
 
-    void lbHeader(ITextComponent chat, Matcher m)
+    void lbHeader(Component chat, Matcher m)
     {
         _currentPage = _pageCount = 0;
     }
 
     private void requestNextPage()
     {
-        if (Configs.Generic.AUTO_PAGE.getBooleanValue())
+        if (Configs.Plugin.AUTO_PAGE.getBooleanValue())
         {
-            if (_currentPage != 0 && _currentPage < _pageCount && _pageCount <= Configs.Generic.MAX_AUTO_PAGES.getIntegerValue())
+            if (_currentPage != 0 && _currentPage < _pageCount && _pageCount <= Configs.Plugin.MAX_AUTO_PAGES.getIntegerValue())
             {
                 ChatMessage.sendToServerChat(String.format(Locale.US, "/lb page %d", _currentPage + 1));
 
@@ -330,7 +331,7 @@ public class LbCoordsAnalysis extends Analysis
         }
     }
 
-    private TextFormatting getChatColorFormat(int x, int y, int z)
+    private ChatFormatting getChatColorFormat(int x, int y, int z)
     {
         int dx = x - _lastX;
         int dy = y - _lastY;

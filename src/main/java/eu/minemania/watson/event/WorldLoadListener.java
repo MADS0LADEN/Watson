@@ -2,30 +2,44 @@ package eu.minemania.watson.event;
 
 import javax.annotation.Nullable;
 
+import eu.minemania.watson.analysis.CoreProtectAnalysis;
 import eu.minemania.watson.config.Configs;
 import eu.minemania.watson.data.DataManager;
 import eu.minemania.watson.render.OverlayRenderer;
 import fi.dy.masa.malilib.interfaces.IWorldLoadListener;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.multiplayer.ClientLevel;
 
 public class WorldLoadListener implements IWorldLoadListener
 {
     @Override
-    public void onWorldLoadPre(@Nullable WorldClient worldBefore, @Nullable WorldClient worldAfter, Minecraft mc)
+    public void onWorldLoadPre(@Nullable ClientLevel worldBefore, @Nullable ClientLevel worldAfter, Minecraft mc)
     {
+        if (worldAfter != null)
+        {
+            DataManager.onWorldPre();
+        }
         // Save the settings before the integrated server gets shut down
         if (worldBefore != null)
         {
             DataManager.save();
-            if(worldAfter == null && DataManager.getEditSelection().getSelection() != null)
+            if (worldAfter == null)
             {
-                DataManager.getEditSelection().clearBlockEditSet();
+                DataManager.reset(true);
+                if (DataManager.getEditSelection().getSelection() != null)
+                {
+                    DataManager.getEditSelection().clearBlockEditSet();
+                    CoreProtectAnalysis.reset();
+                }
+            }
+            else
+            {
+                DataManager.setWorldPlugin("");
             }
         }
         else
         {
-            if(worldAfter != null)
+            if (worldAfter != null)
             {
                 OverlayRenderer.resetRenderTimeout();
             }
@@ -33,16 +47,17 @@ public class WorldLoadListener implements IWorldLoadListener
     }
 
     @Override
-    public void onWorldLoadPost(@Nullable WorldClient worldBefore, @Nullable WorldClient worldAfter, Minecraft mc)
+    public void onWorldLoadPost(@Nullable ClientLevel worldBefore, @Nullable ClientLevel worldAfter, Minecraft mc)
     {
-        if(worldBefore == null && worldAfter != null && Configs.Generic.ENABLED.getBooleanValue())
+        if (worldBefore == null && worldAfter != null && Configs.Generic.ENABLED.getBooleanValue())
         {
             DataManager.onClientTickStart();
-            DataManager.configure(mc.world.getWorldInfo().getGameType());
         }
         if (worldAfter != null)
         {
             DataManager.load();
+
+            DataManager.onWorldJoin();
         }
     }
 }

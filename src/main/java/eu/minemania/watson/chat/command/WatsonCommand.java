@@ -1,24 +1,40 @@
 package eu.minemania.watson.chat.command;
 
-
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
 
+import eu.minemania.watson.analysis.CoreProtectAnalysis;
 import eu.minemania.watson.analysis.ServerTime;
 import eu.minemania.watson.config.Configs;
 import eu.minemania.watson.data.DataManager;
+import eu.minemania.watson.db.BlockEdit;
+import eu.minemania.watson.db.WatsonBlock;
+import eu.minemania.watson.db.WatsonBlockRegistery;
+import eu.minemania.watson.scheduler.SyncTaskQueue;
+import eu.minemania.watson.scheduler.tasks.AddBlockEditTask;
 import fi.dy.masa.malilib.gui.Message.MessageType;
+import fi.dy.masa.malilib.util.data.Color4f;
 import fi.dy.masa.malilib.util.InfoUtils;
-import net.minecraft.command.CommandSource;
-import net.minecraft.util.text.TextComponentString;
+import fi.dy.masa.malilib.util.StringUtils;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import static net.minecraft.command.Commands.literal;
-import static net.minecraft.command.Commands.argument;
+import static net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos;
+import static net.minecraft.commands.arguments.coordinates.BlockPosArgument.getBlockPos;
+import static net.minecraft.commands.Commands.literal;
+import static net.minecraft.commands.Commands.argument;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
+import static com.mojang.brigadier.arguments.StringArgumentType.string;
 import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
@@ -32,10 +48,10 @@ import static com.mojang.brigadier.arguments.DoubleArgumentType.getDouble;
 
 public class WatsonCommand extends WatsonCommandBase
 {
-    public static void register(CommandDispatcher<CommandSource> dispatcher)
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         ClientCommandManager.addClientSideCommand(Configs.Generic.WATSON_PREFIX.getStringValue());
-        LiteralArgumentBuilder<CommandSource> watson = literal(Configs.Generic.WATSON_PREFIX.getStringValue()).executes(WatsonCommand::help)
+        LiteralArgumentBuilder<CommandSourceStack> watson = literal(Configs.Generic.WATSON_PREFIX.getStringValue()).executes(WatsonCommand::help)
                 .then(literal("help").executes(WatsonCommand::help))
                 .then(literal("clear").executes(WatsonCommand::clear))
                 .then(literal("ratio").executes(WatsonCommand::ratio))
@@ -62,7 +78,7 @@ public class WatsonCommand extends WatsonCommandBase
                                 .then(argument("length", floatArg()).executes(WatsonCommand::vector_length))))
                 .then(literal("label").executes(WatsonCommand::label)
                         .then(argument("displayed", bool()).executes(WatsonCommand::label)))
-                .then(literal("tp").executes(WatsonCommand::teleport_next)
+                .then(literal("tp")
                         .then(literal("next").executes(WatsonCommand::teleport_next))
                         .then(literal("previous").executes(WatsonCommand::teleport_prev))
                         .then(argument("index", integer()).executes(WatsonCommand::teleport)))
@@ -105,18 +121,18 @@ public class WatsonCommand extends WatsonCommandBase
                                 .then(argument("enabled", bool()).executes(WatsonCommand::config_debug)))
                         .then(literal("auto_page").executes(WatsonCommand::config_auto_page)
                                 .then(argument("enabled", bool()).executes(WatsonCommand::config_auto_page)))
-                        .then(literal("region_info_timeout").executes(WatsonCommand::config_region_info_timeout) //get
-                                .then(argument("seconds", doubleArg()).executes(WatsonCommand::config_region_info_timeout))) //set
-                        .then(literal("billboard_background").executes(WatsonCommand::config_billb_background) //get
-                                .then(argument("argb", integer()).executes(WatsonCommand::config_billb_background))) //set
-                        .then(literal("billboard_foreground").executes(WatsonCommand::config_billb_foreground) //get
-                                .then(argument("argb", integer()).executes(WatsonCommand::config_billb_foreground))) //set
+                        .then(literal("region_info_timeout").executes(WatsonCommand::config_region_info_timeout)
+                                .then(argument("seconds", doubleArg()).executes(WatsonCommand::config_region_info_timeout)))
+                        .then(literal("billboard_background").executes(WatsonCommand::config_billb_background)
+                                .then(argument("argb", integer()).executes(WatsonCommand::config_billb_background)))
+                        .then(literal("billboard_foreground").executes(WatsonCommand::config_billb_foreground)
+                                .then(argument("argb", integer()).executes(WatsonCommand::config_billb_foreground)))
                         .then(literal("group_ores_in_creative").executes(WatsonCommand::config_group_ores_creative)
                                 .then(argument("enabled", bool()).executes(WatsonCommand::config_group_ores_creative)))
                         .then(literal("teleport_command").executes(WatsonCommand::config_teleport_command)
                                 .then(argument("command", greedyString()).executes(WatsonCommand::config_teleport_command)))
-                        .then(literal("chat_timeout").executes(WatsonCommand::config_chat_timeout) //get
-                                .then(argument("seconds", doubleArg()).executes(WatsonCommand::config_chat_timeout))) //set
+                        .then(literal("chat_timeout").executes(WatsonCommand::config_chat_timeout)
+                                .then(argument("seconds", doubleArg()).executes(WatsonCommand::config_chat_timeout)))
                         .then(literal("max_auto_page").executes(WatsonCommand::config_max_auto_page)
                                 .then(argument("pages", integer(1)).executes(WatsonCommand::config_max_auto_page)))
                         .then(literal("pre_count").executes(WatsonCommand::config_pre_count)
@@ -141,31 +157,43 @@ public class WatsonCommand extends WatsonCommandBase
                                 .then(argument("length", floatArg(0)).executes(WatsonCommand::config_vector_length)))
                         .then(literal("chat_highlights").executes(WatsonCommand::config_chat_highlights)
                                 .then(argument("enabled", bool()).executes(WatsonCommand::config_chat_highlights)))
-                        .then(literal("help").executes(WatsonCommand::help)));
+                        .then(literal("help").executes(WatsonCommand::help)))
+                .then(literal("replay")
+                        .then(argument("radius", integer(1))
+                                .then(argument("speed", doubleArg(1))
+                                        .then(argument("since", greedyString()).executes(WatsonCommand::replay))))
+                        .then(literal("cancel").executes(WatsonCommand::cancelReplay)))
+                .then(literal("dev")
+                        .then(argument("pos", blockPos())
+                                .then(argument("block", string())
+                                        .then(argument("color", string())
+                                                .then(argument("world", word()).executes(WatsonCommand::set_edit)))))
+                        .then(literal("ledgerActions").executes(WatsonCommand::setLedgerActions)));
         dispatcher.register(watson);
     }
 
-    private static int clear(CommandContext<CommandSource> context)
+    private static int clear(CommandContext<CommandSourceStack> context)
     {
         DataManager.getEditSelection().clearBlockEditSet();
+        CoreProtectAnalysis.reset();
         return 1;
     }
 
-    private static int ratio(CommandContext<CommandSource> context)
+    private static int ratio(CommandContext<CommandSourceStack> context)
     {
         DataManager.getEditSelection().getBlockEditSet().getOreDB().showRatios();
         return 1;
     }
 
-    private static int servertime(CommandContext<CommandSource> context)
+    private static int servertime(CommandContext<CommandSourceStack> context)
     {
         ServerTime.getInstance().queryServerTime(true);
         return 1;
     }
 
-    private static int orePage(CommandContext<CommandSource> context)
+    private static int orePage(CommandContext<CommandSourceStack> context)
     {
-        Integer page;
+        int page;
         try
         {
             page = getInteger(context, "page");
@@ -178,37 +206,37 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int preCount(CommandContext<CommandSource> context)
+    private static int preCount(CommandContext<CommandSourceStack> context)
     {
-        Integer count;
+        int count;
         try
         {
             count = getInteger(context, "count");
         }
         catch (Exception e)
         {
-            count = Configs.Generic.PRE_COUNT.getIntegerValue();
+            count = Configs.Edits.PRE_COUNT.getIntegerValue();
         }
         DataManager.getEditSelection().queryPreEdits(count);
         return 1;
     }
 
-    private static int postCount(CommandContext<CommandSource> context)
+    private static int postCount(CommandContext<CommandSourceStack> context)
     {
-        Integer count;
+        int count;
         try
         {
             count = getInteger(context, "count");
         }
         catch (Exception e)
         {
-            count = Configs.Generic.POST_COUNT.getIntegerValue();
+            count = Configs.Edits.POST_COUNT.getIntegerValue();
         }
         DataManager.getEditSelection().queryPostEdits(count);
         return 1;
     }
 
-    private static int display(CommandContext<CommandSource> context)
+    private static int display(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
@@ -221,28 +249,30 @@ public class WatsonCommand extends WatsonCommandBase
             Configs.Generic.DISPLAYED.toggleBooleanValue();
             displayed = Configs.Generic.DISPLAYED.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.display", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.display", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int outline(CommandContext<CommandSource> context)
+    private static int outline(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "displayed");
-            Configs.Generic.OUTLINE_SHOWN.setBooleanValue(displayed);
+            Configs.Outlines.OUTLINE_SHOWN.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.OUTLINE_SHOWN.toggleBooleanValue();
-            displayed = Configs.Generic.OUTLINE_SHOWN.getBooleanValue();
+            Configs.Outlines.OUTLINE_SHOWN.toggleBooleanValue();
+            displayed = Configs.Outlines.OUTLINE_SHOWN.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.outline", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.outline", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int anno(CommandContext<CommandSource> context)
+    private static int anno(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
@@ -255,112 +285,117 @@ public class WatsonCommand extends WatsonCommandBase
             Configs.Generic.ANNOTATION_SHOWN.toggleBooleanValue();
             displayed = Configs.Generic.ANNOTATION_SHOWN.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.anno", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.anno", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int vector(CommandContext<CommandSource> context)
+    private static int vector(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "displayed");
-            Configs.Generic.VECTOR_SHOWN.setBooleanValue(displayed);
+            Configs.Edits.VECTOR_SHOWN.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.VECTOR_SHOWN.toggleBooleanValue();
-            displayed = Configs.Generic.VECTOR_SHOWN.getBooleanValue();
+            Configs.Edits.VECTOR_SHOWN.toggleBooleanValue();
+            displayed = Configs.Edits.VECTOR_SHOWN.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int vector_creat(CommandContext<CommandSource> context)
+    private static int vector_creat(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "displayed");
-            Configs.Generic.LINKED_CREATION.setBooleanValue(displayed);
+            Configs.Edits.LINKED_CREATION.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.LINKED_CREATION.toggleBooleanValue();
-            displayed = Configs.Generic.LINKED_CREATION.getBooleanValue();
+            Configs.Edits.LINKED_CREATION.toggleBooleanValue();
+            displayed = Configs.Edits.LINKED_CREATION.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector.creation", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector.creation", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int vector_destruct(CommandContext<CommandSource> context)
+    private static int vector_destruct(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "displayed");
-            Configs.Generic.LINKED_DESTRUCTION.setBooleanValue(displayed);
+            Configs.Edits.LINKED_DESTRUCTION.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.LINKED_DESTRUCTION.toggleBooleanValue();
-            displayed = Configs.Generic.LINKED_DESTRUCTION.getBooleanValue();
+            Configs.Edits.LINKED_DESTRUCTION.toggleBooleanValue();
+            displayed = Configs.Edits.LINKED_DESTRUCTION.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector.destruction", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector.destruction", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int vector_length(CommandContext<CommandSource> context)
+    private static int vector_length(CommandContext<CommandSourceStack> context)
     {
         float length = getFloat(context, "length");
-        Configs.Generic.VECTOR_LENGTH.setDoubleValue(length);
+        Configs.Edits.VECTOR_LENGTH.setDoubleValue(length);
         InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector.length", length);
         return 1;
     }
 
-    private static int label(CommandContext<CommandSource> context)
+    private static int label(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "displayed");
-            Configs.Generic.LABEL_SHOWN.setBooleanValue(displayed);
+            Configs.Edits.LABEL_SHOWN.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.LABEL_SHOWN.toggleBooleanValue();
-            displayed = Configs.Generic.LABEL_SHOWN.getBooleanValue();
+            Configs.Edits.LABEL_SHOWN.toggleBooleanValue();
+            displayed = Configs.Edits.LABEL_SHOWN.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.label", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.label", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int teleport_next(CommandContext<CommandSource> context)
+    private static int teleport_next(CommandContext<CommandSourceStack> context)
     {
         DataManager.getEditSelection().getBlockEditSet().getOreDB().tpNext();
         return 1;
     }
 
-    private static int teleport_prev(CommandContext<CommandSource> context)
+    private static int teleport_prev(CommandContext<CommandSourceStack> context)
     {
-        DataManager.getEditSelection().getBlockEditSet().getOreDB().tpNext();
+        DataManager.getEditSelection().getBlockEditSet().getOreDB().tpPrev();
         return 1;
     }
 
-    private static int teleport(CommandContext<CommandSource> context)
+    private static int teleport(CommandContext<CommandSourceStack> context)
     {
-        Integer index = getInteger(context, "index");
+        int index = getInteger(context, "index");
         DataManager.getEditSelection().getBlockEditSet().getOreDB().tpIndex(index);
         return 1;
     }
 
-    private static int edits_list(CommandContext<CommandSource> context)
+    private static int edits_list(CommandContext<CommandSourceStack> context)
     {
         DataManager.getEditSelection().getBlockEditSet().listEdits();
         return 1;
     }
 
-    private static int edits_hide(CommandContext<CommandSource> context)
+    private static int edits_hide(CommandContext<CommandSourceStack> context)
     {
         String players = getString(context, "player(s)");
         String[] playerList = players.split(" ");
@@ -371,7 +406,7 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int edits_show(CommandContext<CommandSource> context)
+    private static int edits_show(CommandContext<CommandSourceStack> context)
     {
         String players = getString(context, "player(s)");
         String[] playerList = players.split(" ");
@@ -382,7 +417,7 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int edits_remove(CommandContext<CommandSource> context)
+    private static int edits_remove(CommandContext<CommandSourceStack> context)
     {
         String players = getString(context, "player(s)");
         String[] playerList = players.split(" ");
@@ -393,19 +428,55 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int filter_list(CommandContext<CommandSource> context)
+    private static int set_edit(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
+    {
+        BlockPos pos = getBlockPos(context, "pos");
+        String block = getString(context, "block");
+        String colorstr = getString(context, "color");
+        String world = getString(context, "world");
+        WatsonBlock watsonblock = WatsonBlockRegistery.getInstance().getWatsonBlockByName(block);
+        int colorst = StringUtils.getColor(colorstr, 0);
+        int colorTemp = Mth.clamp(colorst, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        if (colorTemp != 0)
+        {
+            Color4f color = Color4f.fromColor(colorTemp);
+            watsonblock.setOverrideColor(color);
+        }
+        BlockEdit edit = new BlockEdit(1, "test edits", "test", pos.getX(), pos.getY(), pos.getZ(), watsonblock, world, 1);
+        SyncTaskQueue.getInstance().addTask(new AddBlockEditTask(edit, true));
+
+        return 1;
+    }
+
+    private static int setLedgerActions(CommandContext<CommandSourceStack> context)
+    {
+        if (!DataManager.getLedgerActions().isEmpty())
+        {
+            return 1;
+        }
+        List<String> ledgerActions = new ArrayList<>();
+        ledgerActions.add("block-break");
+        ledgerActions.add("block-place");
+        ledgerActions.add("item-insert");
+        ledgerActions.add("item-remove");
+        ledgerActions.add("entity-killed");
+        DataManager.setLedgerActions(ledgerActions);
+        return 1;
+    }
+
+    private static int filter_list(CommandContext<CommandSourceStack> context)
     {
         DataManager.getFilters().list();
         return 1;
     }
 
-    private static int filter_clear(CommandContext<CommandSource> context)
+    private static int filter_clear(CommandContext<CommandSourceStack> context)
     {
         DataManager.getFilters().clear();
         return 1;
     }
 
-    private static int filter_add(CommandContext<CommandSource> context)
+    private static int filter_add(CommandContext<CommandSourceStack> context)
     {
         String players = getString(context, "player(s)");
         String[] playerList = players.split(" ");
@@ -416,7 +487,7 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int filter_remove(CommandContext<CommandSource> context)
+    private static int filter_remove(CommandContext<CommandSourceStack> context)
     {
         String players = getString(context, "player(s)");
         String[] playerList = players.split(" ");
@@ -427,7 +498,7 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int file_list(CommandContext<CommandSource> context)
+    private static int file_list(CommandContext<CommandSourceStack> context)
     {
         String player;
         int page;
@@ -447,18 +518,11 @@ public class WatsonCommand extends WatsonCommandBase
         {
             page = 1;
         }
-        if(player == null)
-        {
-            DataManager.listBlockEditFiles("*", page);
-        }
-        else
-        {
-            DataManager.listBlockEditFiles(player, page);
-        }
+        DataManager.listBlockEditFiles(Objects.requireNonNullElse(player, "*"), page);
         return 1;
     }
 
-    private static int file_delete(CommandContext<CommandSource> context)
+    private static int file_delete(CommandContext<CommandSourceStack> context)
     {
         String player, filename;
         try
@@ -478,29 +542,25 @@ public class WatsonCommand extends WatsonCommandBase
             filename = null;
         }
 
-        if(player != null)
+        if (player != null)
         {
             DataManager.deleteBlockEditFiles(player);
         }
-        else if(filename != null)
-        {
-            DataManager.deleteBlockEditFiles(filename);
-        }
         else
         {
-            DataManager.deleteBlockEditFiles("*");
+            DataManager.deleteBlockEditFiles(Objects.requireNonNullElse(filename, "*"));
         }
         return 1;
     }
 
-    private static int file_expire(CommandContext<CommandSource> context)
+    private static int file_expire(CommandContext<CommandSourceStack> context)
     {
         String date = getString(context, "YYYY-MM-DD");
         DataManager.expireBlockEditFiles(date);
         return 1;
     }
 
-    private static int file_load(CommandContext<CommandSource> context)
+    private static int file_load(CommandContext<CommandSourceStack> context)
     {
         String player, filename;
         try
@@ -520,18 +580,18 @@ public class WatsonCommand extends WatsonCommandBase
             filename = null;
         }
 
-        if(player != null)
+        if (player != null)
         {
             DataManager.loadBlockEditFile(player);
         }
-        else if(filename != null)
+        else if (filename != null)
         {
             DataManager.loadBlockEditFile(filename);
         }
         return 1;
     }
 
-    private static int file_save(CommandContext<CommandSource> context)
+    private static int file_save(CommandContext<CommandSourceStack> context)
     {
         String filename;
         try
@@ -547,7 +607,7 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_watson(CommandContext<CommandSource> context)
+    private static int config_watson(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
@@ -560,7 +620,7 @@ public class WatsonCommand extends WatsonCommandBase
             Configs.Generic.ENABLED.toggleBooleanValue();
             displayed = Configs.Generic.ENABLED.getBooleanValue();
         }
-        if(displayed)
+        if (displayed)
         {
             InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.watson.enabled");
         }
@@ -571,7 +631,7 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_debug(CommandContext<CommandSource> context)
+    private static int config_debug(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
@@ -584,51 +644,53 @@ public class WatsonCommand extends WatsonCommandBase
             Configs.Generic.DEBUG.toggleBooleanValue();
             displayed = Configs.Generic.DEBUG.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.debug", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.debug", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int config_auto_page(CommandContext<CommandSource> context)
+    private static int config_auto_page(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "enabled");
-            Configs.Generic.AUTO_PAGE.setBooleanValue(displayed);
+            Configs.Plugin.AUTO_PAGE.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.AUTO_PAGE.toggleBooleanValue();
-            displayed = Configs.Generic.AUTO_PAGE.getBooleanValue();
+            Configs.Plugin.AUTO_PAGE.toggleBooleanValue();
+            displayed = Configs.Plugin.AUTO_PAGE.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.auto_page", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.auto_page", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int config_region_info_timeout(CommandContext<CommandSource> context)
+    private static int config_region_info_timeout(CommandContext<CommandSourceStack> context)
     {
         double seconds;
         try
         {
             seconds = getDouble(context, "seconds");
             seconds = Math.abs(seconds);
-            if(seconds < 1.0)
+            if (seconds < 1.0)
             {
                 seconds = 1.0;
             }
-            Configs.Generic.REGION_INFO_TIMEOUT.setDoubleValue(seconds);
+            Configs.Plugin.REGION_INFO_TIMEOUT.setDoubleValue(seconds);
         }
         catch (Exception e)
         {
-            seconds = Configs.Generic.REGION_INFO_TIMEOUT.getDoubleValue();
+            seconds = Configs.Plugin.REGION_INFO_TIMEOUT.getDoubleValue();
         }
         InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.region_info_timeout", seconds);
         return 1;
     }
 
-    private static int config_billb_background(CommandContext<CommandSource> context)
+    private static int config_billb_background(CommandContext<CommandSourceStack> context)
     {
-        Integer color;
+        int color;
         try
         {
             color = getInteger(context, "argb");
@@ -642,9 +704,9 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_billb_foreground(CommandContext<CommandSource> context)
+    private static int config_billb_foreground(CommandContext<CommandSourceStack> context)
     {
-        Integer color;
+        int color;
         try
         {
             color = getInteger(context, "argb");
@@ -658,24 +720,25 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_group_ores_creative(CommandContext<CommandSource> context)
+    private static int config_group_ores_creative(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "enabled");
-            Configs.Generic.GROUPING_ORES_IN_CREATIVE.setBooleanValue(displayed);
+            Configs.Edits.GROUPING_ORES_IN_CREATIVE.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.GROUPING_ORES_IN_CREATIVE.toggleBooleanValue();
-            displayed = Configs.Generic.GROUPING_ORES_IN_CREATIVE.getBooleanValue();
+            Configs.Edits.GROUPING_ORES_IN_CREATIVE.toggleBooleanValue();
+            displayed = Configs.Edits.GROUPING_ORES_IN_CREATIVE.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.group_ores_creative", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.group_ores_creative", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int config_teleport_command(CommandContext<CommandSource> context)
+    private static int config_teleport_command(CommandContext<CommandSourceStack> context)
     {
         String command;
         try
@@ -691,14 +754,14 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_chat_timeout(CommandContext<CommandSource> context)
+    private static int config_chat_timeout(CommandContext<CommandSourceStack> context)
     {
         double seconds;
         try
         {
             seconds = getDouble(context, "seconds");
             seconds = Math.abs(seconds);
-            if(seconds < 0.0)
+            if (seconds < 0.0)
             {
                 seconds = 0.0;
             }
@@ -712,55 +775,55 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_max_auto_page(CommandContext<CommandSource> context)
+    private static int config_max_auto_page(CommandContext<CommandSourceStack> context)
     {
-        Integer pages;
+        int pages;
         try
         {
             pages = getInteger(context, "pages");
-            Configs.Generic.MAX_AUTO_PAGES.setIntegerValue(pages);
+            Configs.Plugin.MAX_AUTO_PAGES.setIntegerValue(pages);
         }
         catch (Exception e)
         {
-            pages = Configs.Generic.MAX_AUTO_PAGES.getIntegerValue();
+            pages = Configs.Plugin.MAX_AUTO_PAGES.getIntegerValue();
         }
         InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.max_auto_page", pages);
         return 1;
     }
 
-    private static int config_pre_count(CommandContext<CommandSource> context)
+    private static int config_pre_count(CommandContext<CommandSourceStack> context)
     {
-        Integer count;
+        int count;
         try
         {
             count = getInteger(context, "count");
-            Configs.Generic.PRE_COUNT.setIntegerValue(count);
+            Configs.Edits.PRE_COUNT.setIntegerValue(count);
         }
         catch (Exception e)
         {
-            count = Configs.Generic.PRE_COUNT.getIntegerValue();
+            count = Configs.Edits.PRE_COUNT.getIntegerValue();
         }
         InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.pre_count", count);
         return 1;
     }
 
-    private static int config_post_count(CommandContext<CommandSource> context)
+    private static int config_post_count(CommandContext<CommandSourceStack> context)
     {
-        Integer count;
+        int count;
         try
         {
             count = getInteger(context, "count");
-            Configs.Generic.POST_COUNT.setIntegerValue(count);
+            Configs.Edits.POST_COUNT.setIntegerValue(count);
         }
         catch (Exception e)
         {
-            count = Configs.Generic.POST_COUNT.getIntegerValue();
+            count = Configs.Edits.POST_COUNT.getIntegerValue();
         }
         InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.post_count", count);
         return 1;
     }
 
-    private static int config_watson_prefix(CommandContext<CommandSource> context)
+    private static int config_watson_prefix(CommandContext<CommandSourceStack> context)
     {
         String prefix;
         try
@@ -772,11 +835,11 @@ public class WatsonCommand extends WatsonCommandBase
         {
             prefix = Configs.Generic.WATSON_PREFIX.getStringValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.watson_prefix", prefix);
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.watson.prefix", prefix);
         return 1;
     }
 
-    private static int config_ss_player_directory(CommandContext<CommandSource> context)
+    private static int config_ss_player_directory(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
@@ -789,11 +852,12 @@ public class WatsonCommand extends WatsonCommandBase
             Configs.Generic.SS_PLAYER_DIRECTORY.toggleBooleanValue();
             displayed = Configs.Generic.SS_PLAYER_DIRECTORY.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.ss_player_directory", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.ss_player_directory", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int config_ss_player_suffix(CommandContext<CommandSource> context)
+    private static int config_ss_player_suffix(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
@@ -806,17 +870,18 @@ public class WatsonCommand extends WatsonCommandBase
             Configs.Generic.SS_PLAYER_SUFFIX.toggleBooleanValue();
             displayed = Configs.Generic.SS_PLAYER_SUFFIX.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.ss_player_suffix", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.ss_player_suffix", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int config_ss_date_directory(CommandContext<CommandSource> context)
+    private static int config_ss_date_directory(CommandContext<CommandSourceStack> context)
     {
         String date_directory;
         try
         {
             date_directory = getString(context, "format");
-            Configs.Generic.SS_DATE_DIRECTORY.setValueFromString(date_directory);;
+            Configs.Generic.SS_DATE_DIRECTORY.setValueFromString(date_directory);
         }
         catch (Exception e)
         {
@@ -826,54 +891,56 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_reformat_query(CommandContext<CommandSource> context)
+    private static int config_reformat_query(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "enabled");
-            Configs.Generic.REFORMAT_QUERY_RESULTS.setBooleanValue(displayed);
+            Configs.Plugin.REFORMAT_QUERY_RESULTS.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.REFORMAT_QUERY_RESULTS.toggleBooleanValue();
-            displayed = Configs.Generic.REFORMAT_QUERY_RESULTS.getBooleanValue();
+            Configs.Plugin.REFORMAT_QUERY_RESULTS.toggleBooleanValue();
+            displayed = Configs.Plugin.REFORMAT_QUERY_RESULTS.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.reformat_query_results", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.reformat_query_results", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int config_recolor_query(CommandContext<CommandSource> context)
+    private static int config_recolor_query(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "enabled");
-            Configs.Generic.RECOLOR_QUERY_RESULTS.setBooleanValue(displayed);
+            Configs.Plugin.RECOLOR_QUERY_RESULTS.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.RECOLOR_QUERY_RESULTS.toggleBooleanValue();
-            displayed = Configs.Generic.RECOLOR_QUERY_RESULTS.getBooleanValue();
+            Configs.Plugin.RECOLOR_QUERY_RESULTS.toggleBooleanValue();
+            displayed = Configs.Plugin.RECOLOR_QUERY_RESULTS.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.recolor_query_results", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.recolor_query_results", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int config_time_ordered(CommandContext<CommandSource> context)
+    private static int config_time_ordered(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "enabled");
-            Configs.Generic.TIME_ORDERED_DEPOSITS.setBooleanValue(displayed);
+            Configs.Edits.TIME_ORDERED_DEPOSITS.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.TIME_ORDERED_DEPOSITS.toggleBooleanValue();
-            displayed = Configs.Generic.TIME_ORDERED_DEPOSITS.getBooleanValue();
+            Configs.Edits.TIME_ORDERED_DEPOSITS.toggleBooleanValue();
+            displayed = Configs.Edits.TIME_ORDERED_DEPOSITS.getBooleanValue();
         }
-        if(displayed)
+        if (displayed)
         {
             InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.time_ordered_deposits.enabled");
         }
@@ -884,62 +951,104 @@ public class WatsonCommand extends WatsonCommandBase
         return 1;
     }
 
-    private static int config_vector_length(CommandContext<CommandSource> context)
+    private static int config_vector_length(CommandContext<CommandSourceStack> context)
     {
         float length;
         try
         {
             length = getFloat(context, "length");
             length = Math.max(0.0f, length);
-            Configs.Generic.VECTOR_LENGTH.setDoubleValue(length);
+            Configs.Edits.VECTOR_LENGTH.setDoubleValue(length);
         }
         catch (Exception e)
         {
-            length = (float) Configs.Generic.VECTOR_LENGTH.getDoubleValue();
+            length = (float) Configs.Edits.VECTOR_LENGTH.getDoubleValue();
         }
         InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.vector.length", length);
         return 1;
     }
 
-    private static int config_chat_highlights(CommandContext<CommandSource> context)
+    private static int config_chat_highlights(CommandContext<CommandSourceStack> context)
     {
         boolean displayed;
         try
         {
             displayed = getBool(context, "enabled");
-            Configs.Generic.USE_CHAT_HIGHLIGHTS.setBooleanValue(displayed);
+            Configs.Highlights.USE_CHAT_HIGHLIGHTS.setBooleanValue(displayed);
         }
         catch (Exception e)
         {
-            Configs.Generic.USE_CHAT_HIGHLIGHTS.toggleBooleanValue();
-            displayed = Configs.Generic.USE_CHAT_HIGHLIGHTS.getBooleanValue();
+            Configs.Highlights.USE_CHAT_HIGHLIGHTS.toggleBooleanValue();
+            displayed = Configs.Highlights.USE_CHAT_HIGHLIGHTS.getBooleanValue();
         }
-        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.chat_highlights", displayed);
+        String strSetting = displayed ? "watson.message.setting.on" : "watson.message.setting.off";
+        InfoUtils.showGuiOrInGameMessage(MessageType.INFO, "watson.message.config.chat_highlights", StringUtils.translate(strSetting));
         return 1;
     }
 
-    private static int help(CommandContext<CommandSource> context)
+    private static int help(CommandContext<CommandSourceStack> context)
     {
         int cmdCount = 0;
-        CommandDispatcher<CommandSource> dispatcher = Command.commandDispatcher;
-        for(CommandNode<CommandSource> command : dispatcher.getRoot().getChildren())
+        CommandDispatcher<CommandSourceStack> dispatcher = Command.commandDispatcher;
+        for (CommandNode<CommandSourceStack> command : dispatcher.getRoot().getChildren())
         {
             String cmdName = command.getName();
-            if(ClientCommandManager.isClientSideCommand(cmdName))
+            if (ClientCommandManager.isClientSideCommand(cmdName))
             {
-                Map<CommandNode<CommandSource>, String> usage = dispatcher.getSmartUsage(command, context.getSource());
-                for(String u : usage.values())
+                Map<CommandNode<CommandSourceStack>, String> usage = dispatcher.getSmartUsage(command, context.getSource());
+                for (String u : usage.values())
                 {
-                    ClientCommandManager.sendFeedback(new TextComponentString("/" + cmdName + " " + u));
+                    ClientCommandManager.sendFeedback(Component.literal("/" + cmdName + " " + u));
                 }
                 cmdCount += usage.size();
-                if(usage.size() == 0)
+                if (usage.isEmpty())
                 {
-                    ClientCommandManager.sendFeedback(new TextComponentString("/" + cmdName));
+                    ClientCommandManager.sendFeedback(Component.literal("/" + cmdName));
                     cmdCount++;
                 }
             }
         }
         return cmdCount;
+    }
+
+    private static int replay(CommandContext<CommandSourceStack> context)
+    {
+        String since = "";
+        double speed = 0;
+        int radius = 0;
+
+        try
+        {
+            since = getString(context, "since");
+            speed = getDouble(context, "speed");
+            radius = getInteger(context, "radius");
+        }
+        catch (Exception e)
+        {
+            String error;
+            if (since.isEmpty())
+            {
+                error = "since";
+            }
+            else if (speed == 0)
+            {
+                error = "speed";
+            }
+            else
+            {
+                error = "radius";
+            }
+            localErrorT(context.getSource(), "watson.error.command.replay." + error);
+            return 0;
+        }
+
+        DataManager.getEditSelection().replay(since, speed, radius, context.getSource());
+        return 1;
+    }
+
+    private static int cancelReplay(CommandContext<CommandSourceStack> context)
+    {
+        DataManager.getEditSelection().cancelReplay();
+        return 1;
     }
 }

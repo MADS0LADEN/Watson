@@ -3,26 +3,25 @@ package eu.minemania.watson.db;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import eu.minemania.watson.Watson;
 import eu.minemania.watson.config.Configs;
-import fi.dy.masa.malilib.util.Color4f;
+import fi.dy.masa.malilib.util.data.Color4f;
 import fi.dy.masa.malilib.util.StringUtils;
-import net.minecraft.block.Block;
-import net.minecraft.entity.EntityType;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.registry.IRegistry;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public final class WatsonBlockRegistery
 {
     private static final WatsonBlockRegistery INSTANCE = new WatsonBlockRegistery();
-    public static final Map<String, WatsonBlock> _byName = new HashMap<String, WatsonBlock>();
-    protected String blockname = "";
-    protected float lineWidth;
-    protected Color4f color;
+    public static final Map<String, WatsonBlock> _byName = new HashMap<>();
 
     public static WatsonBlockRegistery getInstance()
     {
@@ -36,7 +35,7 @@ public final class WatsonBlockRegistery
         getInstance().populateWatsonBlockList(list);
 
         WatsonBlock unknown = getInstance().getWatsonBlockByName("minecraft:bedrock");
-        if(unknown == null)
+        if (unknown == null)
         {
             unknown = new WatsonBlock();
             unknown.setName("minecraft:bedrock");
@@ -50,25 +49,25 @@ public final class WatsonBlockRegistery
         {
             try
             {
-                if(entry.isEmpty() == false)
+                if (!entry.isEmpty())
                 {
                     String[] watsonBlockData = entry.split(";");
-                    if(watsonBlockData.length == 3)
+                    if (watsonBlockData.length == 3)
                     {
-                        Block block = IRegistry.BLOCK.getOrDefault(new ResourceLocation(watsonBlockData[0]));
+                        Block block = BuiltInRegistries.BLOCK.getValue(Identifier.tryParse(watsonBlockData[0]));
                         WatsonBlock watsonBlock = new WatsonBlock();
-                        if(block != Blocks.AIR)
+                        if (block != Blocks.AIR)
                         {
-                            String blockName = IRegistry.ITEM.getKey(new ItemStack(block).getItem()).toString();
+                            String blockName = BuiltInRegistries.BLOCK.getKey(block).toString();
                             watsonBlock.setName(blockName);
                             float lineWidth = Float.parseFloat(watsonBlockData[1]);
-                            if(lineWidth != 0)
+                            if (lineWidth != 0)
                             {
                                 watsonBlock.setLineWidth(lineWidth);
                             }
                             int colorst = StringUtils.getColor(watsonBlockData[2], 0);
-                            int colorTemp = MathHelper.clamp(colorst, Integer.MIN_VALUE, Integer.MAX_VALUE);
-                            if(colorTemp != 0)
+                            int colorTemp = Mth.clamp(colorst, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                            if (colorTemp != 0)
                             {
                                 Color4f color = Color4f.fromColor(colorTemp);
                                 watsonBlock.setColor(color);
@@ -77,18 +76,36 @@ public final class WatsonBlockRegistery
                         }
                         else
                         {
-                            EntityType<?> entity = EntityType.getById(watsonBlockData[0]);
-                            if(entity != null)
+                            Item item = BuiltInRegistries.ITEM.getValue(Identifier.tryParse(watsonBlockData[0]));
+                            if (item != Items.AIR)
                             {
                                 watsonBlock.setName(watsonBlockData[0]);
                                 float lineWidth = Float.parseFloat(watsonBlockData[1]);
-                                if(lineWidth != 0)
+                                if (lineWidth != 0)
                                 {
                                     watsonBlock.setLineWidth(lineWidth);
                                 }
                                 int colorst = StringUtils.getColor(watsonBlockData[2], 0);
-                                int colorTemp = MathHelper.clamp(colorst, Integer.MIN_VALUE, Integer.MAX_VALUE);
-                                if(colorTemp != 0)
+                                int colorTemp = Mth.clamp(colorst, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                                if (colorTemp != 0)
+                                {
+                                    Color4f color = Color4f.fromColor(colorTemp);
+                                    watsonBlock.setColor(color);
+                                }
+                                addWatsonBlock(watsonBlock);
+                            }
+                            Optional<EntityType<?>> entity = EntityType.byString(watsonBlockData[0]);
+                            if (entity.isPresent())
+                            {
+                                watsonBlock.setName(watsonBlockData[0]);
+                                float lineWidth = Float.parseFloat(watsonBlockData[1]);
+                                if (lineWidth != 0)
+                                {
+                                    watsonBlock.setLineWidth(lineWidth);
+                                }
+                                int colorst = StringUtils.getColor(watsonBlockData[2], 0);
+                                int colorTemp = Mth.clamp(colorst, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                                if (colorTemp != 0)
                                 {
                                     Color4f color = Color4f.fromColor(colorTemp);
                                     watsonBlock.setColor(color);
@@ -113,15 +130,15 @@ public final class WatsonBlockRegistery
 
     private void addWatsonBlock(WatsonBlock watsonBlock)
     {
-        if(Configs.Generic.DEBUG.getBooleanValue())
+        if (Configs.Generic.DEBUG.getBooleanValue())
         {
-            Watson.logger.debug("watson block: '{}'", watsonBlock.toString());
+            Watson.logger.info("watson block: '{}'", watsonBlock.toString());
         }
         String name = watsonBlock.getName();
         addWatsonBlockName(name, watsonBlock);
 
         String noSpaces = name.replaceAll(" ", "");
-        if(!name.equals(noSpaces))
+        if (!name.equals(noSpaces))
         {
             addWatsonBlockName(noSpaces, watsonBlock);
         }
@@ -131,21 +148,22 @@ public final class WatsonBlockRegistery
 
     private void addWatsonBlockName(String name, WatsonBlock watsonBlock)
     {
-        WatsonBlock oldWatsonBlock = _byName.get(name);
-        if (oldWatsonBlock == null)
-        {
-            _byName.put(name, watsonBlock);
-        }
+        _byName.putIfAbsent(name, watsonBlock);
+    }
+
+    public WatsonBlock getWatsonBlockByBlock(Block block)
+    {
+        return getWatsonBlockByName(BuiltInRegistries.BLOCK.getKey(block).toString());
     }
 
     public WatsonBlock getWatsonBlockByName(String name)
     {
-        WatsonBlock result = _byName.get("minecraft:" +name.toLowerCase());
-        if(result == null)
+        WatsonBlock result = _byName.get("minecraft:" + name.toLowerCase());
+        if (result == null)
         {
             result = _byName.get(name.toLowerCase());
         }
-        if(name.contains("minecraft:"))
+        if (name.contains("minecraft:"))
         {
             result = _byName.get(name.toLowerCase());
         }
@@ -162,8 +180,8 @@ public final class WatsonBlockRegistery
 
     public WatsonBlock getBlockKillTypeByName(String name)
     {
-        WatsonBlock result = _byName.get("minecraft:" +name.toLowerCase());
-        if(result == null)
+        WatsonBlock result = _byName.get("minecraft:" + name.toLowerCase());
+        if (result == null)
         {
             return _byName.get("minecraft:player");
         }

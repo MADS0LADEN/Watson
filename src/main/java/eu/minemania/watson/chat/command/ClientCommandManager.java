@@ -7,15 +7,9 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
-import net.minecraft.command.CommandException;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.text.TextComponentUtils;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.event.ClickEvent;
-import net.minecraft.util.text.event.HoverEvent;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.*;
+import net.minecraft.ChatFormatting;
 
 /**
  * @author Earthcomputer
@@ -44,59 +38,58 @@ public class ClientCommandManager
         return clientSideCommands.contains(name);
     }
 
-    public static void sendError(ITextComponent error)
+    public static void sendError(Component error)
     {
-        sendFeedback(new TextComponentString("").appendText(error.getFormattedText()).applyTextStyles(TextFormatting.RED));
+        sendFeedback(Component.literal("").append(error).withStyle(ChatFormatting.RED));
     }
 
     public static void sendFeedback(String message)
     {
-        sendFeedback(new TextComponentTranslation(message));
+        sendFeedback(Component.translatable(message));
     }
 
-    public static void sendFeedback(ITextComponent message)
+    public static void sendFeedback(Component message)
     {
-        Minecraft.getInstance().ingameGUI.getChatGUI().printChatMessage(message);
+        Minecraft.getInstance().gui.getChat().addClientSystemMessage(message);
     }
 
     public static int executeCommand(StringReader reader, String command)
     {
         Minecraft mc = Minecraft.getInstance();
-        EntityPlayerSP player = mc.player;
+        LocalPlayer player = mc.player;
         try
         {
-            return player.connection.func_195515_i().execute(reader, new FakeCommandSource(player));
-        }
-        catch (CommandException e)
-        {
-            ClientCommandManager.sendError(e.getComponent());
+            if (Command.commandDispatcher == null)
+            {
+                Command.registerCommands(new com.mojang.brigadier.CommandDispatcher<>());
+            }
+            return Command.commandDispatcher.execute(reader, new FakeCommandSource(player));
         }
         catch (CommandSyntaxException e)
         {
-            ClientCommandManager.sendError(TextComponentUtils.toTextComponent(e.getRawMessage()));
+            ClientCommandManager.sendError(ComponentUtils.fromMessage(e.getRawMessage()));
             if (e.getInput() != null && e.getCursor() >= 0)
             {
                 int cursor = Math.min(e.getCursor(), e.getInput().length());
-                ITextComponent text = new TextComponentString("").applyTextStyles(TextFormatting.GRAY)
-                        .applyTextStyle(style -> style.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, command)));
+                MutableComponent text = Component.literal("").withStyle(ChatFormatting.GRAY).withStyle(style -> style.withClickEvent(new ClickEvent.SuggestCommand(command)));
                 if (cursor > 10)
                 {
-                    text.appendText("...");
+                    text.append("...");
                 }
-                text.appendText(e.getInput().substring(Math.max(0, cursor - 10), cursor));
+                text.append(e.getInput().substring(Math.max(0, cursor - 10), cursor));
                 if (cursor < e.getInput().length())
                 {
-                    text.appendText((new TextComponentString(e.getInput().substring(cursor)).applyTextStyles(TextFormatting.RED, TextFormatting.UNDERLINE)).getFormattedText());
+                    text.append((Component.literal(e.getInput().substring(cursor)).withStyle(ChatFormatting.RED, ChatFormatting.UNDERLINE)));
                 }
 
-                text.appendText((new TextComponentTranslation("command.context.here").applyTextStyles(TextFormatting.RED, TextFormatting.ITALIC)).getFormattedText());
+                text.append((Component.translatable("command.context.here").withStyle(ChatFormatting.RED, ChatFormatting.ITALIC)));
                 ClientCommandManager.sendError(text);
             }
         }
         catch (Exception e)
         {
-            TextComponentString error = new TextComponentString(e.getMessage() == null ? e.getClass().getName() : e.getMessage());
-            ClientCommandManager.sendError(new TextComponentTranslation("command.failed").applyTextStyle(style -> style.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, error))));
+            MutableComponent error = Component.literal(e.getMessage() == null ? e.getClass().getName() : e.getMessage());
+            ClientCommandManager.sendError(Component.translatable("command.failed").withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(error))));
             e.printStackTrace();
         }
         return 1;

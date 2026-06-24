@@ -1,12 +1,22 @@
 package eu.minemania.watson.db;
 
+import java.time.ZoneId;
 import java.util.Calendar;
-import java.util.Locale;
+import java.util.TimeZone;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TimeStamp
 {
     protected static Calendar _time = Calendar.getInstance();
     protected static Calendar _reference;
+    protected static final int MS_PER_HOUR = 60 * 60 * 1000;
+    protected static final Pattern HOURS_AGO_TIME = Pattern.compile("(\\d+.\\d+)/(\\w) ago");
+    protected static final Pattern DATE_HOUR = Pattern.compile("(\\d+)-(\\d+) (\\d+):(\\d+)");
+    protected static final Pattern ABSOLUTE_TIME = Pattern.compile("(\\d{1,4})-(\\d{1,2})-(\\d{1,2}) (\\d{1,2}):(\\d{2}):(\\d{2})(?: (\\w+))?");
+    protected static final Pattern TIME_PRISM = Pattern.compile("(?:(?<day>\\d+)d)?(?:(?<hour>\\d+)h)?(?:(?<min>\\d+)m)?\\sago");
+    protected static final Pattern TIME_SINGLE_PRISM = Pattern.compile("(?<year>\\d{1,4})/(?<month>\\d{1,2})/(?<day>\\d{1,2}) (?<hour>\\d{1,2}):(?<min>\\d{2}):(?<sec>\\d{2})(?<merid>\\w+)?");
+    protected static final Pattern DATE_HOUR_SECOND = Pattern.compile("(?<month>\\d+)-(?<day>\\d+) (?<hour>\\d+):(?<min>\\d+):(?<sec>\\d+)");
 
     static
     {
@@ -24,8 +34,37 @@ public class TimeStamp
         return _time.getTimeInMillis();
     }
 
-    public static long toMillis(int year, int month, int dayOfMonth, int hour, int minute, int second)
+    public static long toMillis(int year, int month, int dayOfMonth, int hour, int minute, int second, String timezone, String hoverTime, String timeCP)
     {
+        if (!hoverTime.isEmpty() && timezone.isEmpty())
+        {
+            _time.set(year, month - 1, dayOfMonth, hour, minute, second);
+            return _time.getTimeInMillis();
+        }
+        TimeZone zone = null;
+        if (!hoverTime.isEmpty() && !ZoneId.getAvailableZoneIds().contains(timezone))
+        {
+            try
+            {
+                Timezone time = Timezone.valueOf(timezone);
+                zone = TimeZone.getTimeZone(ZoneId.of(time.getOffset()));
+            }
+            catch (Exception e)
+            {
+                if (!timeCP.equals(""))
+                {
+                    return timeCP(timeCP);
+                }
+            }
+        }
+        if (zone == null)
+        {
+            zone = TimeZone.getTimeZone(timezone);
+        }
+        if (!timezone.equals(""))
+        {
+            _time.setTimeZone(zone);
+        }
         _time.set(year, month - 1, dayOfMonth, hour, minute, second);
         return _time.getTimeInMillis();
     }
@@ -36,20 +75,19 @@ public class TimeStamp
         {
             ymd[0] += 2000;
         }
-
-        return (ymd[0] == 0) ? toMillis(ymd[1], ymd[2], hour, minute, second) : toMillis(ymd[0], ymd[1], ymd[2], hour, minute, second);
+        return (ymd[0] == 0) ? toMillis(ymd[1], ymd[2], hour, minute, second) : toMillis(ymd[0], ymd[1], ymd[2], hour, minute, second, "", "", "");
     }
 
     public static String formatMonthDayTime(long millis)
     {
         _time.setTimeInMillis(millis);
-        return String.format(Locale.US, "%02d-%02d %02d:%02d:%02d", _time.get(Calendar.MONTH) + 1, _time.get(Calendar.DAY_OF_MONTH), _time.get(Calendar.HOUR_OF_DAY), _time.get(Calendar.MINUTE), _time.get(Calendar.SECOND));
+        return String.format("%02d-%02d %02d:%02d:%02d", _time.get(Calendar.MONTH) + 1, _time.get(Calendar.DAY_OF_MONTH), _time.get(Calendar.HOUR_OF_DAY), _time.get(Calendar.MINUTE), _time.get(Calendar.SECOND));
     }
 
     public static String formatQueryTime(long millis)
     {
         _time.setTimeInMillis(millis);
-        return String.format(Locale.US, "%d.%d.%d %02d:%02d:%02d", _time.get(Calendar.DAY_OF_MONTH), _time.get(Calendar.MONTH) + 1, _time.get(Calendar.YEAR), _time.get(Calendar.HOUR_OF_DAY),	_time.get(Calendar.MINUTE), _time.get(Calendar.SECOND));
+        return String.format("%d.%d.%d %02d:%02d:%02d", _time.get(Calendar.DAY_OF_MONTH), _time.get(Calendar.MONTH) + 1, _time.get(Calendar.YEAR), _time.get(Calendar.HOUR_OF_DAY), _time.get(Calendar.MINUTE), _time.get(Calendar.SECOND));
     }
 
     public static int[] parseYMD(String date)
@@ -68,5 +106,211 @@ public class TimeStamp
             ymd[2] = Integer.parseInt(parts[2]);
         }
         return ymd;
+    }
+
+    public static long timeDiff(int month, int dayOfMonth, int hour, int minute, int second)
+    {
+        Calendar time = Calendar.getInstance();
+        try
+        {
+            time.add(Calendar.MONTH, -month);
+            time.add(Calendar.DAY_OF_MONTH, -dayOfMonth);
+            time.add(Calendar.HOUR_OF_DAY, -hour);
+            time.add(Calendar.MINUTE, -minute);
+            time.add(Calendar.SECOND, -second);
+            return time.getTimeInMillis();
+        }
+        catch (Exception e)
+        {
+            return 0;
+        }
+    }
+
+    public static long timeCP(String time)
+    {
+        Matcher relative = HOURS_AGO_TIME.matcher(time);
+        if (relative.matches())
+        {
+            String timed = relative.group(1).replace(",", ".");
+            float hours;
+            if (relative.group(2).contains("d"))
+            {
+                hours = Float.parseFloat(timed) / 24;
+            }
+            else if (relative.group(2).contains("m"))
+            {
+                hours = Float.parseFloat(timed) * 60;
+            }
+            else
+            {
+                hours = Float.parseFloat(timed);
+            }
+            long millis = System.currentTimeMillis() - (long) (hours * MS_PER_HOUR);
+
+            millis -= millis % (MS_PER_HOUR / 100);
+            return millis;
+        }
+        relative = DATE_HOUR.matcher(time);
+        if (relative.matches())
+        {
+            int month = Integer.parseInt(relative.group(1));
+            int day = Integer.parseInt(relative.group(2));
+            int hour = Integer.parseInt(relative.group(3));
+            int min = Integer.parseInt(relative.group(4));
+            return toMillis(month, day, hour, min, 0);
+        }
+        return 0;
+    }
+
+    public static long parseTimeExpression(String hoverTime, String time)
+    {
+        Matcher absolute = ABSOLUTE_TIME.matcher(hoverTime);
+        Matcher prismTime = TIME_PRISM.matcher(time);
+        Matcher prismSingleTime = TIME_SINGLE_PRISM.matcher(time);
+        Matcher logblockHover = DATE_HOUR_SECOND.matcher(hoverTime);
+        if (absolute.matches())
+        {
+            int year = Integer.parseInt(absolute.group(1));
+            int month = Integer.parseInt(absolute.group(2));
+            int day = Integer.parseInt(absolute.group(3));
+            int hour = Integer.parseInt(absolute.group(4));
+            int minute = Integer.parseInt(absolute.group(5));
+            int second = Integer.parseInt(absolute.group(6));
+            String timezone = "";
+            if (absolute.group(7) != null)
+            {
+                timezone = absolute.group(7);
+            }
+            return TimeStamp.toMillis(year, month, day, hour, minute, second, timezone, hoverTime, time);
+        }
+        else if (prismTime.matches())
+        {
+            int day = 0;
+            int hour = 0;
+            int min = 0;
+            try {
+                day = Integer.parseInt(prismTime.group("day"));
+            } catch (Exception ignored) {}
+            try {
+                hour = Integer.parseInt(prismTime.group("hour"));
+            } catch (Exception ignored) {}
+            try {
+                min = Integer.parseInt(prismTime.group("min"));
+            } catch (Exception ignored) {}
+
+            return TimeStamp.timeDiff(0, day, hour, min, 0);
+        }
+        else if (time.equals("just now"))
+        {
+            Calendar timed = Calendar.getInstance();
+            timed.add(Calendar.SECOND, -10);
+            return timed.getTimeInMillis();
+        }
+        else if (prismSingleTime.matches())
+        {
+            int year = Integer.parseInt(prismSingleTime.group("year"));
+            int month = Integer.parseInt(prismSingleTime.group("month"));
+            int day = Integer.parseInt(prismSingleTime.group("day"));
+            int hour = Integer.parseInt(prismSingleTime.group("hour"));
+            int minute = Integer.parseInt(prismSingleTime.group("min"));
+            int second = Integer.parseInt(prismSingleTime.group("sec"));
+            String merid = prismSingleTime.group("merid");
+            if (merid.equals("pm"))
+            {
+                hour += 12;
+            }
+            if (year != 0 && year < 100)
+            {
+                year += 2000;
+            }
+            return TimeStamp.toMillis(year, month, day, hour, minute, second, "", "", "");
+        }
+        else if (logblockHover.matches())
+        {
+            int month = Integer.parseInt(logblockHover.group("month"));
+            int day = Integer.parseInt(logblockHover.group("day"));
+            int hour = Integer.parseInt(logblockHover.group("hour"));
+            int minute = Integer.parseInt(logblockHover.group("min"));
+            int second = Integer.parseInt(logblockHover.group("sec"));
+            return toMillis(month, day, hour, minute, second);
+        }
+        else
+        {
+            return TimeStamp.timeCP(time);
+        }
+    }
+
+    public enum Timezone
+    {
+        CEST("GMT+2"),
+        PDT("GMT-7"),
+        BST("GMT+1"),
+        EDT("GMT-4"),
+        CDT("GMT-5"),
+        MDT("GMT-6"),
+        AEDT("GMT+11"),
+        ACDT("GMT+10:30"),
+        ADT("GMT-3"),
+        AKDT("GMT-8"),
+        AMST("GMT+5"),
+        AWST("GMT+8"),
+        AZOST("GMT+0"),
+        CHADT("GMT+13:45"),
+        CHOST("GMT+9"),
+        CIDST("GMT-4"),
+        CLT("GMT-4"),
+        CLST("GMT-3"),
+        EASST("GMT-5"),
+        EEST("GMT+3"),
+        EGST("GMT+0"),
+        FJST("GMT+13"),
+        FKST("GMT-3"),
+        HDT("GMT-9"),
+        HOVST("GMT+8"),
+        IDT("GMT+3"),
+        IRDT("GMT+4:30"),
+        LHDT("GMT+11"),
+        MSD("GMT+4"),
+        NDT("GMT-2:30"),
+        NFDT("GMT+12"),
+        NZDT("GMT+13"),
+        PMDT("GMT-2"),
+        WEST("GMT+1"),
+        ANAST("GMT+12"),
+        AWDT("GMT+9"),
+        AZST("GMT+5"),
+        BRST("GMT-2"),
+        IRKST("GMT+9"),
+        IST("GMT+1"),
+        KRAST("GMT+8"),
+        KUYT("GMT+4"),
+        MAGST("GMT+12"),
+        NOVST("GMT+7"),
+        OMSST("GMT+7"),
+        PETST("GMT+12"),
+        PYST("GMT-3"),
+        TOST("GMT-14"),
+        ULAST("GMT+9"),
+        UYST("GMT-2"),
+        VLAST("GMT+11"),
+        WARST("GMT-3"),
+        WAST("GMT+2"),
+        WGST("GMT-2"),
+        WST("GMT+13"),
+        YAKST("GMT+10"),
+        YEKST("GMT+6"),
+        MSK("GMT+3");
+
+        private final String offset;
+
+        Timezone(String offset)
+        {
+            this.offset = offset;
+        }
+
+        public String getOffset()
+        {
+            return this.offset;
+        }
     }
 }

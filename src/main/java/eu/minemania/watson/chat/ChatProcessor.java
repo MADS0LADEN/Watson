@@ -2,34 +2,25 @@ package eu.minemania.watson.chat;
 
 import java.util.ArrayList;
 
-import eu.minemania.watson.analysis.CoreProtectAnalysis;
-import eu.minemania.watson.analysis.LbCoordsAnalysis;
-import eu.minemania.watson.analysis.LbToolBlockAnalysis;
-import eu.minemania.watson.analysis.ModModeAnalysis;
-import eu.minemania.watson.analysis.RatioAnalysis;
-import eu.minemania.watson.analysis.RegionInfoAnalysis;
-import eu.minemania.watson.analysis.ServerTime;
-import eu.minemania.watson.analysis.TeleportAnalysis;
+import eu.minemania.watson.analysis.*;
 import eu.minemania.watson.config.Configs;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.network.chat.MutableComponent;
 
 public class ChatProcessor
 {
-    private static ChatProcessor INSTANCE = new ChatProcessor();
-    protected ArrayList<IChatHandler> _handlers = new ArrayList<IChatHandler>();
+    private static final ChatProcessor INSTANCE = new ChatProcessor();
+    private final ArrayList<IChatHandler> _handlers = new ArrayList<>();
 
     private ChatProcessor()
     {
-        addChatHandler(new LbCoordsAnalysis());
-        addChatHandler(new LbToolBlockAnalysis());
-        addChatHandler(new TeleportAnalysis());
-        addChatHandler(new RatioAnalysis());
-        addChatHandler(ServerTime.getInstance());
+        addChatHandler(new LogBlockAnalysis());
 
         addChatHandler(new ModModeAnalysis());
         addChatHandler(new RegionInfoAnalysis());
 
         addChatHandler(new CoreProtectAnalysis());
+
+        addChatHandler(new PrismAnalysis());
     }
 
     public static ChatProcessor getInstance()
@@ -42,16 +33,11 @@ public class ChatProcessor
         _handlers.add(handler);
     }
 
-    public boolean onChat(ITextComponent chat)
+    public boolean onChat(MutableComponent chat)
     {
         if (Configs.Generic.ENABLED.getBooleanValue())
         {
-            boolean allow = true;
-            for (IChatHandler handler : _handlers)
-            {
-                allow &= handler.onChat(chat);
-            }
-            return allow;
+            return new Analysis().onChat(chat);
         }
         else
         {

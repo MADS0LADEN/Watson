@@ -1,0 +1,342 @@
+package eu.minemania.watson.gui.widgets;
+
+import java.util.List;
+import javax.annotation.Nullable;
+
+import eu.minemania.watson.db.data.EditListBlockedit;
+import eu.minemania.watson.gui.GuiBlockeditData;
+import eu.minemania.watson.gui.Icons;
+import eu.minemania.watson.selection.PlayereditBase;
+import eu.minemania.watson.selection.PlayereditBase.SortCriteria;
+import eu.minemania.watson.selection.PlayereditEntry;
+import fi.dy.masa.malilib.gui.GuiBase;
+import fi.dy.masa.malilib.gui.button.ButtonBase;
+import fi.dy.masa.malilib.gui.button.ButtonGeneric;
+import fi.dy.masa.malilib.gui.button.IButtonActionListener;
+import fi.dy.masa.malilib.gui.widgets.WidgetListEntrySortable;
+import fi.dy.masa.malilib.gui.widgets.WidgetSearchBar;
+import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.util.StringUtils;
+import fi.dy.masa.malilib.render.GuiContext;
+import net.minecraft.world.item.ItemStack;
+
+public class WidgetEditsEntry extends WidgetListEntrySortable<PlayereditEntry>
+{
+    private static final String[] HEADERS = new String[]{
+            "watson.gui.label.edits.title.item",
+            "watson.gui.label.edits.title.broken",
+            "watson.gui.label.edits.title.placed",
+            "watson.gui.label.edits.title.contadded",
+            "watson.gui.label.edits.title.contremoved",
+            "watson.gui.label.edits.title.total"
+    };
+    private static int maxNameLength;
+    private static int maxBrokenLength;
+    private static int maxPlacedLength;
+    private static int maxContAddedLength;
+    private static int maxContRemovedLength;
+    private static int maxTotalLength;
+
+    private final PlayereditBase edits;
+    private final WidgetListEdits listWidget;
+    @Nullable
+    private final PlayereditEntry entry;
+    @Nullable
+    private final String header1;
+    @Nullable
+    private final String header2;
+    @Nullable
+    private final String header3;
+    @Nullable
+    private final String header4;
+    @Nullable
+    private final String header5;
+    @Nullable
+    private final String header6;
+    private final boolean isOdd;
+
+    public WidgetEditsEntry(int x, int y, int width, int height, boolean isOdd, PlayereditBase edits, @Nullable PlayereditEntry entry, int listIndex, WidgetListEdits listWidget)
+    {
+        super(x, y, width, height, entry, listIndex);
+
+        this.columnCount = 6;
+        this.entry = entry;
+        this.isOdd = isOdd;
+        this.listWidget = listWidget;
+        this.edits = edits;
+
+        if (this.entry != null)
+        {
+            this.header1 = null;
+            this.header2 = null;
+            this.header3 = null;
+            this.header4 = null;
+            this.header5 = null;
+            this.header6 = null;
+
+            int posX = x + width;
+            int posY = y + 1;
+
+            this.createButtonGeneric(posX, posY, ButtonListener.ButtonType.BLOCKS);
+        }
+        else
+        {
+            this.header1 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[0]) + GuiBase.TXT_RST;
+            this.header2 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[1]) + GuiBase.TXT_RST;
+            this.header3 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[2]) + GuiBase.TXT_RST;
+            this.header4 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[3]) + GuiBase.TXT_RST;
+            this.header5 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[4]) + GuiBase.TXT_RST;
+            this.header6 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[5]) + GuiBase.TXT_RST;
+        }
+    }
+
+    private void createButtonGeneric(int xRight, int y, ButtonListener.ButtonType type)
+    {
+        String label = type.getDisplayName();
+        ButtonListener listener = new ButtonListener(type, this.entry, this.listWidget);
+        this.addButton(new ButtonGeneric(xRight, y, -1, true, label), listener);
+    }
+
+    public static void setMaxNameLength(List<PlayereditEntry> edits)
+    {
+        maxNameLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[0]) + GuiBase.TXT_RST);
+        maxBrokenLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[1]) + GuiBase.TXT_RST);
+        maxPlacedLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[2]) + GuiBase.TXT_RST);
+        maxContAddedLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[3]) + GuiBase.TXT_RST);
+        maxContRemovedLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[4]) + GuiBase.TXT_RST);
+        maxTotalLength = StringUtils.getStringWidth(GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[5]) + GuiBase.TXT_RST);
+
+        for (PlayereditEntry entry : edits)
+        {
+            maxNameLength = Math.max(maxNameLength, StringUtils.getStringWidth(entry.getStack().getHoverName().getString()));
+            maxBrokenLength = Math.max(maxBrokenLength, StringUtils.getStringWidth(String.valueOf(entry.getCountBroken())));
+            maxPlacedLength = Math.max(maxPlacedLength, StringUtils.getStringWidth(String.valueOf(entry.getCountPlaced())));
+            maxContAddedLength = Math.max(maxContAddedLength, StringUtils.getStringWidth(String.valueOf(entry.getCountContAdded())));
+            maxContRemovedLength = Math.max(maxContRemovedLength, StringUtils.getStringWidth(String.valueOf(entry.getCountContRemoved())));
+            maxTotalLength = Math.max(maxTotalLength, StringUtils.getStringWidth(String.valueOf(entry.getCountTotal())));
+        }
+    }
+
+    public boolean canSelectAt(net.minecraft.client.input.MouseButtonEvent event)
+    {
+        return false;
+    }
+
+    @Override
+    protected int getColumnPosX(int column)
+    {
+        int x1 = this.x + 4;
+        int x2 = x1 + maxNameLength + 40;
+        int x3 = x2 + maxBrokenLength + 20;
+        int x4 = x3 + maxPlacedLength + 20;
+        int x5 = x4 + maxContAddedLength + 20;
+        int x6 = x5 + maxContRemovedLength + 20;
+        int x7 = x6 + maxTotalLength + 20;
+
+        return switch (column)
+                {
+                    case 1 -> x2;
+                    case 2 -> x3;
+                    case 3 -> x4;
+                    case 4 -> x5;
+                    case 5 -> x6;
+                    case 6 -> x7;
+                    default -> x1;
+                };
+    }
+
+    @Override
+    protected int getCurrentSortColumn()
+    {
+        return this.edits.getSortCriteria().ordinal();
+    }
+
+    @Override
+    protected boolean getSortInReverse()
+    {
+        return this.edits.getSortInReverse();
+    }
+
+    @Override
+    protected boolean onMouseClickedImpl(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick)
+    {
+        if (super.onMouseClickedImpl(event, doubleClick))
+        {
+            return true;
+        }
+
+        if (this.entry != null)
+        {
+            return false;
+        }
+
+        int column = this.getMouseOverColumn((int) event.x(), (int) event.y());
+
+        switch (column)
+        {
+            case 0:
+                this.edits.setSortCriteria(SortCriteria.NAME);
+                break;
+            case 5:
+                this.edits.setSortCriteria(SortCriteria.COUNT_TOTAL);
+                break;
+            default:
+                return false;
+        }
+
+        this.listWidget.refreshEntries();
+
+        return true;
+    }
+
+    @Override
+    public void render(GuiContext drawContext, int mouseX, int mouseY, boolean selected)
+    {
+        if (this.header1 == null && (selected || this.isMouseOver(mouseX, mouseY)))
+        {
+            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0707070);
+        }
+        else if (this.isOdd)
+        {
+            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0101010);
+        }
+        else
+        {
+            RenderUtils.drawRect(this.x, this.y, this.width, this.height, 0xA0303030);
+        }
+
+        int x1 = this.getColumnPosX(0);
+        int x2 = this.getColumnPosX(1);
+        int x3 = this.getColumnPosX(2);
+        int x4 = this.getColumnPosX(3);
+        int x5 = this.getColumnPosX(4);
+        int x6 = this.getColumnPosX(5);
+        int y = this.y + 7;
+        int color = 0xFFFFFFFF;
+
+        if (this.header1 != null)
+        {
+            WidgetSearchBar widgetSearchBar = this.listWidget.getSearchBarWidget();
+            if (widgetSearchBar != null && !widgetSearchBar.isSearchOpen())
+            {
+                this.drawString(drawContext, x1, y, color, this.header1);
+                this.drawString(drawContext, x2, y, color, this.header2);
+                this.drawString(drawContext, x3, y, color, this.header3);
+                this.drawString(drawContext, x4, y, color, this.header4);
+                this.drawString(drawContext, x5, y, color, this.header5);
+                this.drawString(drawContext, x6, y, color, this.header6);
+
+                this.renderColumnHeader(drawContext, mouseX, mouseY, Icons.ARROW_DOWN, Icons.ARROW_UP);
+            }
+        }
+        else if (this.entry != null)
+        {
+            this.drawString(drawContext, x1 + 20, y, color, this.entry.getStack().getHoverName().getString());
+            this.drawString(drawContext, x2, y, color, String.valueOf(this.entry.getCountBroken()));
+            this.drawString(drawContext, x3, y, color, String.valueOf(this.entry.getCountPlaced()));
+            this.drawString(drawContext, x4, y, color, String.valueOf(this.entry.getCountContAdded()));
+            this.drawString(drawContext, x5, y, color, String.valueOf(this.entry.getCountContRemoved()));
+            this.drawString(drawContext, x6, y, color, String.valueOf(this.entry.getCountTotal()));
+
+            y = this.y + 3;
+            RenderUtils.drawRect(x1, y, 16, 16, 0x20FFFFFF);
+            drawContext.renderItem(this.entry.getStack(), x1, y);
+
+            super.render(drawContext, mouseX, mouseY, selected);
+        }
+    }
+
+    @Override
+    public void postRenderHovered(GuiContext drawContext, int mouseX, int mouseY, boolean selected)
+    {
+        if (this.entry != null)
+        {
+            drawContext.elementUp();
+
+            String header1 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[0]);
+            String header2 = GuiBase.TXT_BOLD + StringUtils.translate(HEADERS[5]);
+
+            ItemStack stack = this.entry.getStack();
+            String stackName = stack.getHoverName().getString();
+            int total = this.entry.getCountTotal();
+            String strTotal = this.getFormattedCountString(total);
+
+            int w1 = Math.max(this.getStringWidth(header1), this.getStringWidth(header2));
+            int w2 = Math.max(this.getStringWidth(stackName), this.getStringWidth(strTotal));
+            int totalWidth = w1 + w2 + 60;
+
+            int x = mouseX + 10;
+            int y = mouseY - 10;
+
+            if (x + totalWidth - 20 >= this.width)
+            {
+                x -= totalWidth + 20;
+            }
+
+            int x1 = x + 10;
+            int x2 = x1 + w1 + 20;
+
+            RenderUtils.drawOutlinedBox(drawContext, x, y, totalWidth, 60, 0xFF000000, GuiBase.COLOR_HORIZONTAL_BAR);
+            y += 6;
+            int y1 = y;
+            y += 4;
+
+            this.drawString(drawContext, x1, y, 0xFFFFFFFF, header1);
+            this.drawString(drawContext, x2 + 20, y, 0xFFFFFFFF, stackName);
+            y += 16;
+
+            this.drawString(drawContext, x1, y, 0xFFFFFFFF, header2);
+            this.drawString(drawContext, x2, y, 0xFFFFFFFF, strTotal);
+
+            RenderUtils.drawRect(x2, y1, 16, 16, 0x20FFFFFF);
+
+            drawContext.renderItem(stack, x2, y1);
+        }
+    }
+
+    private String getFormattedCountString(int total)
+    {
+        return String.format("%d", total);
+    }
+
+    static class ButtonListener implements IButtonActionListener
+    {
+        private final ButtonType type;
+        private final WidgetListEdits listWidget;
+        private final PlayereditEntry entry;
+
+        public ButtonListener(ButtonType type, PlayereditEntry entry, WidgetListEdits listWidget)
+        {
+            this.type = type;
+            this.listWidget = listWidget;
+            this.entry = entry;
+        }
+
+        @Override
+        public void actionPerformedWithButton(ButtonBase button, int mouseButton)
+        {
+            if (this.type == ButtonType.BLOCKS)
+            {
+                EditListBlockedit editList = new EditListBlockedit(this.entry.getBlocks(), true);
+                GuiBase.openGui(new GuiBlockeditData(editList, this.entry.getStack().getItem().getDescriptionId(), listWidget.getGuiParent()));
+            }
+        }
+
+        public enum ButtonType
+        {
+            BLOCKS("watson.gui.button.edits.blocks");
+
+            private final String translationKey;
+
+            ButtonType(String translationKey)
+            {
+                this.translationKey = translationKey;
+            }
+
+            public String getDisplayName()
+            {
+                return StringUtils.translate(translationKey);
+            }
+        }
+    }
+}

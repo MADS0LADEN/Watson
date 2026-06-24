@@ -3,14 +3,17 @@ package eu.minemania.watson.gui;
 import javax.annotation.Nullable;
 
 import eu.minemania.watson.Reference;
+import eu.minemania.watson.config.Configs;
+import eu.minemania.watson.config.Plugins;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.button.ButtonBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import fi.dy.masa.malilib.util.StringUtils;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.screens.Screen;
 
-public class GuiMainMenu extends GuiBase {
+public class GuiMainMenu extends GuiBase
+{
     public GuiMainMenu()
     {
         String version = String.format("v%s", Reference.MOD_VERSION);
@@ -27,6 +30,16 @@ public class GuiMainMenu extends GuiBase {
         int width = this.getButtonWidth();
 
         this.createChangeMenuButton(x, y, width, ButtonListenerChangeMenu.ButtonType.CONFIGURATION);
+        if (mc.player != null)
+        {
+            y += 22;
+            this.createChangeMenuButton(x, y, width, ButtonListenerChangeMenu.ButtonType.PLAYEREDIT_LOADED);
+            y += 22;
+            if (Configs.Plugin.PLUGIN.getOptionListValue() == Plugins.LEDGER)
+            {
+                this.createChangeMenuButton(x, y, width, ButtonListenerChangeMenu.ButtonType.LEDGER_MENU);
+            }
+        }
     }
 
     private void createChangeMenuButton(int x, int y, int width, ButtonListenerChangeMenu.ButtonType type)
@@ -40,7 +53,7 @@ public class GuiMainMenu extends GuiBase {
     {
         int width = 0;
 
-        for(ButtonListenerChangeMenu.ButtonType type : ButtonListenerChangeMenu.ButtonType.values())
+        for (ButtonListenerChangeMenu.ButtonType type : ButtonListenerChangeMenu.ButtonType.values())
         {
             width = Math.max(width, this.getStringWidth(type.getDisplayName()) + 30);
         }
@@ -52,9 +65,9 @@ public class GuiMainMenu extends GuiBase {
     {
         private final ButtonType type;
         @Nullable
-        private final GuiScreen parent;
+        private final Screen parent;
 
-        public ButtonListenerChangeMenu(ButtonType type, @Nullable GuiScreen parent)
+        public ButtonListenerChangeMenu(ButtonType type, @Nullable Screen parent)
         {
             this.type = type;
             this.parent = parent;
@@ -67,15 +80,16 @@ public class GuiMainMenu extends GuiBase {
 
             switch (this.type)
             {
-                case CONFIGURATION:
+                case CONFIGURATION -> {
                     GuiBase.openGui(new GuiConfigs());
                     return;
-                case MAIN_MENU:
-                    gui = new GuiMainMenu();
-                    break;
+                }
+                case MAIN_MENU -> gui = new GuiMainMenu();
+                case PLAYEREDIT_LOADED -> gui = new GuiPlayereditLoadedList();
+                case LEDGER_MENU -> gui = new GuiLedger();
             }
 
-            if(gui != null)
+            if (gui != null)
             {
                 gui.setParent(this.parent);
                 GuiBase.openGui(gui);
@@ -84,13 +98,15 @@ public class GuiMainMenu extends GuiBase {
 
         public enum ButtonType
         {
-            CONFIGURATION ("watson.gui.button.change_menu.configuration_menu", ButtonIcons.CONFIGURATION),
-            MAIN_MENU ("watson.gui.button.change_menu.to_main_menu", null);
+            CONFIGURATION("watson.gui.button.change_menu.configuration_menu", ButtonIcons.CONFIGURATION),
+            MAIN_MENU("watson.gui.button.change_menu.to_main_menu", null),
+            PLAYEREDIT_LOADED("watson.gui.button.change_menu.playeredit_loaded_menu", null),
+            LEDGER_MENU("watson.gui.button.change_menu.ledger_menu", null);
 
             private final String labelKey;
             private final ButtonIcons icon;
 
-            private ButtonType(String labelKey, ButtonIcons icon)
+            ButtonType(String labelKey, ButtonIcons icon)
             {
                 this.labelKey = labelKey;
                 this.icon = icon;

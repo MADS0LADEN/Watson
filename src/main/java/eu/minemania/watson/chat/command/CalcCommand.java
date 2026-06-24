@@ -2,8 +2,8 @@ package eu.minemania.watson.chat.command;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
-import static net.minecraft.command.Commands.argument;
-import static net.minecraft.command.Commands.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 import java.io.IOException;
 import java.io.StreamTokenizer;
@@ -15,38 +15,38 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.CommandNode;
 
-import net.minecraft.command.CommandSource;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
 
 public class CalcCommand extends WatsonCommandBase
 {
-    public static void register(CommandDispatcher<CommandSource> dispatcher)
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         ClientCommandManager.addClientSideCommand("calc");
-        LiteralArgumentBuilder<CommandSource> calc = literal("calc").executes(CalcCommand::help)
+        LiteralArgumentBuilder<CommandSourceStack> calc = literal("calc").executes(CalcCommand::help)
                 .then(literal("help").executes(CalcCommand::help))
                 .then(argument("calculation", greedyString()).executes(CalcCommand::calc));
         dispatcher.register(calc);
     }
 
-    private static int help(CommandContext<CommandSource> context)
+    private static int help(CommandContext<CommandSourceStack> context)
     {
         int cmdCount = 0;
-        CommandDispatcher<CommandSource> dispatcher = Command.commandDispatcher;
-        for(CommandNode<CommandSource> command : dispatcher.getRoot().getChildren())
+        CommandDispatcher<CommandSourceStack> dispatcher = Command.commandDispatcher;
+        for (CommandNode<CommandSourceStack> command : dispatcher.getRoot().getChildren())
         {
             String cmdName = command.getName();
-            if(ClientCommandManager.isClientSideCommand(cmdName))
+            if (ClientCommandManager.isClientSideCommand(cmdName))
             {
-                Map<CommandNode<CommandSource>, String> usage = dispatcher.getSmartUsage(command, context.getSource());
-                for(String u : usage.values())
+                Map<CommandNode<CommandSourceStack>, String> usage = dispatcher.getSmartUsage(command, context.getSource());
+                for (String u : usage.values())
                 {
-                    ClientCommandManager.sendFeedback(new TextComponentString("/" + cmdName + " " + u));
+                    ClientCommandManager.sendFeedback(Component.literal("/" + cmdName + " " + u));
                 }
                 cmdCount += usage.size();
-                if(usage.size() == 0)
+                if (usage.size() == 0)
                 {
-                    ClientCommandManager.sendFeedback(new TextComponentString("/" + cmdName));
+                    ClientCommandManager.sendFeedback(Component.literal("/" + cmdName));
                     cmdCount++;
                 }
             }
@@ -54,7 +54,7 @@ public class CalcCommand extends WatsonCommandBase
         return cmdCount;
     }
 
-    private static int calc(CommandContext<CommandSource> context)
+    private static int calc(CommandContext<CommandSourceStack> context)
     {
         String commandLine = getString(context, "calculation");
         StreamTokenizer tokenizer = makeTokenizer(commandLine);
@@ -82,6 +82,7 @@ public class CalcCommand extends WatsonCommandBase
         // introducers. >.<
         tokenizer.ordinaryChar('*');
         tokenizer.ordinaryChar('/');
+        tokenizer.ordinaryChar('%');
         return tokenizer;
     }
 
@@ -98,7 +99,7 @@ public class CalcCommand extends WatsonCommandBase
     private static double expr(StreamTokenizer tokenizer) throws IOException
     {
         double result = term(tokenizer);
-        for (;;)
+        for (; ; )
         {
             int token = tokenizer.nextToken();
             if (token == '+')
@@ -121,7 +122,7 @@ public class CalcCommand extends WatsonCommandBase
     private static double term(StreamTokenizer tokenizer) throws IOException
     {
         double result = factor(tokenizer);
-        for (;;)
+        for (; ; )
         {
             int token = tokenizer.nextToken();
             if (token == '*')
@@ -131,6 +132,10 @@ public class CalcCommand extends WatsonCommandBase
             else if (token == '/')
             {
                 result /= factor(tokenizer);
+            }
+            else if (token == '%')
+            {
+                result %= factor(tokenizer);
             }
             else
             {

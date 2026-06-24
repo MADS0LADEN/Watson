@@ -7,7 +7,8 @@ import eu.minemania.watson.config.Configs;
 import eu.minemania.watson.data.DataManager;
 import eu.minemania.watson.db.BlockEdit;
 import eu.minemania.watson.selection.EditSelection;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 public class TeleportAnalysis extends Analysis
 {
@@ -16,7 +17,7 @@ public class TeleportAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_TP, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbTp(chat, m);
                 return true;
@@ -24,7 +25,7 @@ public class TeleportAnalysis extends Analysis
         });
     }
 
-    void lbTp(ITextComponent chat, Matcher m)
+    void lbTp(Component chat, Matcher m)
     {
         try
         {

@@ -1,5 +1,6 @@
 package eu.minemania.watson.db;
 
+import eu.minemania.watson.data.DataManager;
 import eu.minemania.watson.render.OverlayRenderer;
 
 public class Annotation
@@ -44,8 +45,11 @@ public class Annotation
         return _world;
     }
 
-    public void draw(double dx, double dy, double dz)
+    public void draw()
     {
-        OverlayRenderer.drawBillboard(getX() - dx, getY() - dy, getZ() - dz, 0.03, getText());
+        if (DataManager.getWorldPlugin().isEmpty() || DataManager.getWorldPlugin().equals(getWorld()))
+        {
+            OverlayRenderer.drawBillboard(getX(), getY(), getZ(), 0.03, getText());
+        }
     }
 }

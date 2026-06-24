@@ -4,9 +4,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import eu.minemania.watson.chat.ChatMessage;
-import eu.minemania.watson.chat.IMatchedChatHandler;
 import eu.minemania.watson.config.Configs;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.network.chat.MutableComponent;
 
 public class RegionInfoAnalysis extends Analysis
 {
@@ -15,31 +14,26 @@ public class RegionInfoAnalysis extends Analysis
 
     public RegionInfoAnalysis()
     {
-        addMatchedChatHandler(Configs.Analysis.WG_REGIONS, new IMatchedChatHandler()
-        {
-            @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
-            {
-                wgRegions(chat, m);
-                return true;
-            }
+        addMatchedChatHandler(Configs.Analysis.WG_REGIONS, (chat, m) -> {
+            wgRegions(chat, m);
+            return true;
         });
     }
 
-    void wgRegions(ITextComponent chat, Matcher m)
+    void wgRegions(MutableComponent chat, Matcher m)
     {
         long now = System.currentTimeMillis();
-        if(now - _lastCommandTime > (long) (Configs.Generic.REGION_INFO_TIMEOUT.getDoubleValue() * 1000))
+        if (now - _lastCommandTime > (long) (Configs.Plugin.REGION_INFO_TIMEOUT.getDoubleValue() * 1000))
         {
             int regionCount = 0;
             Matcher names = _regionNames.matcher(m.group(1));
-            while(names.find())
+            while (names.find())
             {
-                ChatMessage.sendToServerChat("/region info " + names.group());
+                ChatMessage.sendToServerChat("region info " + names.group());
                 ++regionCount;
             }
 
-            _lastCommandTime = now + (long) (1000 * Configs.Generic.REGION_INFO_TIMEOUT.getDefaultDoubleValue()) * Math.max(0, regionCount - 1);
+            _lastCommandTime = now + (long) (1000 * Configs.Plugin.REGION_INFO_TIMEOUT.getDefaultDoubleValue()) * Math.max(0, regionCount - 1);
         }
     }
 }

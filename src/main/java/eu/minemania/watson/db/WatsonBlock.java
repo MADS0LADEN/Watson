@@ -1,12 +1,13 @@
 package eu.minemania.watson.db;
 
-import fi.dy.masa.malilib.util.Color4f;
+import fi.dy.masa.malilib.util.data.Color4f;
 
 public final class WatsonBlock
 {
     private String name = "";
-    private Color4f color = new Color4f(255,255,0,255);
+    private Color4f color = new Color4f(255, 255, 0, 255);
     private float lineWidth = 1.0f;
+    private Color4f overrideColor;
 
     public void setName(String name)
     {
@@ -28,6 +29,16 @@ public final class WatsonBlock
         return this.color;
     }
 
+    public void setOverrideColor(Color4f overrideColor)
+    {
+        this.overrideColor = overrideColor;
+    }
+
+    public Color4f getOverrideColor()
+    {
+        return this.overrideColor;
+    }
+
     public void setLineWidth(float lineWidth)
     {
         this.lineWidth = lineWidth;
@@ -43,21 +54,19 @@ public final class WatsonBlock
      */
     public String toString()
     {
-        StringBuilder builder = new StringBuilder();
-        builder.append(getName());
-        builder.append(" (");
-        builder.append(") [");
-        builder.append(getColor().r);
-        builder.append(',');
-        builder.append(getColor().g);
-        builder.append(',');
-        builder.append(getColor().b);
-        builder.append(',');
-        builder.append(getColor().a);
-        builder.append("] ");
-        builder.append(getLineWidth());
-        builder.append(')');
-        return builder.toString();
+        return getName() +
+                " (" +
+                ") [" +
+                getColor().r +
+                ',' +
+                getColor().g +
+                ',' +
+                getColor().b +
+                ',' +
+                getColor().a +
+                "] " +
+                getLineWidth() +
+                ')';
     }
 
     @Override
@@ -69,14 +78,14 @@ public final class WatsonBlock
     @Override
     public boolean equals(Object obj)
     {
-        if(obj == this)
+        if (obj == this)
         {
             return true;
         }
 
-        if(obj instanceof WatsonBlock)
+        if (obj instanceof WatsonBlock)
         {
-            return ((WatsonBlock)obj).name.equals(this.name);
+            return ((WatsonBlock) obj).name.equals(this.name);
         }
 
         return false;

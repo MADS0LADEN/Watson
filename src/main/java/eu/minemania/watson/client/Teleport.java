@@ -1,7 +1,5 @@
 package eu.minemania.watson.client;
 
-import java.util.BitSet;
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,24 +9,38 @@ import eu.minemania.watson.config.Configs;
 
 public class Teleport
 {
-    public static void teleport(int x, int y, int z)
+    public static void teleport(double x, double y, double z, String world)
     {
         String format = Configs.Generic.TELEPORT_COMMAND.getStringValue();
-        Pattern specifier = Pattern.compile("%[dg]");
-        Matcher specifiers = specifier.matcher(format);
-
-        BitSet isDouble = new BitSet();
-        int i = 0;
-        while (specifiers.find())
+        Pattern pattern = Pattern.compile("\\{(\\w*):?(\\w*)}");
+        Matcher matcher = pattern.matcher(format);
+        while (matcher.find())
         {
-            isDouble.set(i, specifiers.group().equals("%g"));
-            ++i;
+            String text = Pattern.quote(matcher.group());
+            switch (matcher.group(1))
+            {
+                case "world" -> {
+                    world = world != null ? world : "";
+                    format = format.replaceFirst(text, world);
+                }
+                case "x" -> {
+                    Number nx = (matcher.group(2).equals("d") ? (Number) (x + 0.5) : (int) x);
+                    format = format.replaceFirst(text, String.valueOf(nx));
+                }
+                case "y" -> {
+                    Number ny = (matcher.group(2).equals("d") ? (Number) (y + 0.5) : (int) y);
+                    format = format.replaceFirst(text, String.valueOf(ny));
+                }
+                case "z" -> {
+                    Number nz = (matcher.group(2).equals("d") ? (Number) (z + 0.5) : (int) z);
+                    format = format.replaceFirst(text, String.valueOf(nz));
+                }
+            }
         }
-        Number nx = (isDouble.get(0) ? (Number) (x+0.5) : x);
-        Number ny = (isDouble.get(1) ? (Number) (y+0.5) : y);
-        Number nz = (isDouble.get(2) ? (Number) (z+0.5) : z);
-        String command = String.format(Locale.US, format, nx, ny, nz);
-        Watson.logger.debug(command);
-        ChatMessage.sendToServerChat(command);
+        if (Configs.Generic.DEBUG.getBooleanValue())
+        {
+            Watson.logger.info(format);
+        }
+        ChatMessage.sendToServerChat(format);
     }
 }

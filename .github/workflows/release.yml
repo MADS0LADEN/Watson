@@ -5,25 +5,25 @@ on:
       loaders:
         description: 'Loaders'
         required: true
-        default: '["Fabric","Quilt"]'
+        default: '["fabric","quilt"]'
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
-      image: eclipse-temurin:18-jdk
+      image: eclipse-temurin:21-jdk
       options: --user root
     steps:
       - name: Get version from tag
         id: tag_name
         run: |
-          echo ::set-output name=current_version::${GITHUB_REF#refs/tags/v}
+          echo "current_version=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
         shell: bash
       - run: apt update && apt install git nodejs -y && git --version
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Get Changelog Entry
@@ -33,10 +33,11 @@ jobs:
           validation_level: warn
           version: ${{ steps.tag_name.outputs.current_version }}
           path: ./CHANGELOG.md
-      - uses: gradle/wrapper-validation-action@v1
+      - uses: gradle/actions/wrapper-validation@v3
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
       - run: ./gradlew build publishMod --stacktrace
         env:
-          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CHANGELOG: ${{ steps.changelog_reader.outputs.changes }}
           LOADERS: ${{ inputs.loaders }}

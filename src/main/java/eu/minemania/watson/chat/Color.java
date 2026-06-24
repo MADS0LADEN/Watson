@@ -2,72 +2,72 @@ package eu.minemania.watson.chat;
 
 import java.util.HashMap;
 
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.ChatFormatting;
 
 public enum Color
 {
-    black(TextFormatting.BLACK),
-    darkblue(TextFormatting.DARK_BLUE),
-    darkgreen(TextFormatting.DARK_GREEN),
-    darkaqua(TextFormatting.DARK_AQUA),
-    darkred(TextFormatting.DARK_RED), 
-    darkpurple(TextFormatting.DARK_PURPLE),
-    gold(TextFormatting.GOLD),
-    grey(TextFormatting.GRAY),
-    gray(TextFormatting.GRAY),
-    darkgrey(TextFormatting.DARK_GRAY),
-    darkgray(TextFormatting.DARK_GRAY),
-    blue(TextFormatting.BLUE),
-    green(TextFormatting.GREEN),
-    aqua(TextFormatting.AQUA),
-    red(TextFormatting.RED),
-    lightpurple(TextFormatting.LIGHT_PURPLE),
-    yellow(TextFormatting.YELLOW),
-    white(TextFormatting.WHITE);
+    black(ChatFormatting.BLACK),
+    darkblue(ChatFormatting.DARK_BLUE),
+    darkgreen(ChatFormatting.DARK_GREEN),
+    darkaqua(ChatFormatting.DARK_AQUA),
+    darkred(ChatFormatting.DARK_RED),
+    darkpurple(ChatFormatting.DARK_PURPLE),
+    gold(ChatFormatting.GOLD),
+    grey(ChatFormatting.GRAY),
+    gray(ChatFormatting.GRAY),
+    darkgrey(ChatFormatting.DARK_GRAY),
+    darkgray(ChatFormatting.DARK_GRAY),
+    blue(ChatFormatting.BLUE),
+    green(ChatFormatting.GREEN),
+    aqua(ChatFormatting.AQUA),
+    red(ChatFormatting.RED),
+    lightpurple(ChatFormatting.LIGHT_PURPLE),
+    yellow(ChatFormatting.YELLOW),
+    white(ChatFormatting.WHITE);
 
-    private TextFormatting _color;
-    private static HashMap<TextFormatting, Color> _byTextFormatColor = new HashMap<TextFormatting, Color>();
+    private final ChatFormatting _color;
+    private static final HashMap<ChatFormatting, Color> _byTextFormatColor = new HashMap<>();
 
     static
     {
-        _byTextFormatColor.put(TextFormatting.BLACK, Color.black);
-        _byTextFormatColor.put(TextFormatting.DARK_BLUE, Color.darkblue);
-        _byTextFormatColor.put(TextFormatting.DARK_GREEN, Color.darkgreen);
-        _byTextFormatColor.put(TextFormatting.DARK_AQUA, Color.darkaqua);
-        _byTextFormatColor.put(TextFormatting.DARK_RED, Color.darkred);
-        _byTextFormatColor.put(TextFormatting.DARK_PURPLE, Color.darkpurple);
-        _byTextFormatColor.put(TextFormatting.GOLD, Color.gold);
-        _byTextFormatColor.put(TextFormatting.GRAY, Color.gray);
-        _byTextFormatColor.put(TextFormatting.DARK_GRAY, Color.darkgray);
-        _byTextFormatColor.put(TextFormatting.BLUE, Color.blue);
-        _byTextFormatColor.put(TextFormatting.GREEN, Color.green);
-        _byTextFormatColor.put(TextFormatting.AQUA, Color.aqua);
-        _byTextFormatColor.put(TextFormatting.RED, Color.red);
-        _byTextFormatColor.put(TextFormatting.LIGHT_PURPLE, Color.lightpurple);
-        _byTextFormatColor.put(TextFormatting.YELLOW, Color.yellow);
-        _byTextFormatColor.put(TextFormatting.WHITE, Color.white);
-    };
+        _byTextFormatColor.put(ChatFormatting.BLACK, Color.black);
+        _byTextFormatColor.put(ChatFormatting.DARK_BLUE, Color.darkblue);
+        _byTextFormatColor.put(ChatFormatting.DARK_GREEN, Color.darkgreen);
+        _byTextFormatColor.put(ChatFormatting.DARK_AQUA, Color.darkaqua);
+        _byTextFormatColor.put(ChatFormatting.DARK_RED, Color.darkred);
+        _byTextFormatColor.put(ChatFormatting.DARK_PURPLE, Color.darkpurple);
+        _byTextFormatColor.put(ChatFormatting.GOLD, Color.gold);
+        _byTextFormatColor.put(ChatFormatting.GRAY, Color.gray);
+        _byTextFormatColor.put(ChatFormatting.DARK_GRAY, Color.darkgray);
+        _byTextFormatColor.put(ChatFormatting.BLUE, Color.blue);
+        _byTextFormatColor.put(ChatFormatting.GREEN, Color.green);
+        _byTextFormatColor.put(ChatFormatting.AQUA, Color.aqua);
+        _byTextFormatColor.put(ChatFormatting.RED, Color.red);
+        _byTextFormatColor.put(ChatFormatting.LIGHT_PURPLE, Color.lightpurple);
+        _byTextFormatColor.put(ChatFormatting.YELLOW, Color.yellow);
+        _byTextFormatColor.put(ChatFormatting.WHITE, Color.white);
+    }
 
-    public TextFormatting getColor()
+    public ChatFormatting getColor()
     {
         return _color;
     }
 
-    public static Color getByTextFormatColor(TextFormatting colorTextFormat)
+    public static Color getByTextFormatColor(ChatFormatting colorTextFormat)
     {
         Color color = _byTextFormatColor.get(colorTextFormat);
-        if(color == null)
+        if (color == null)
         {
-            throw new IllegalArgumentException("invalid color code: " + color);
+            throw new IllegalArgumentException("invalid color code: " + colorTextFormat.toString());
         }
         return color;
     }
 
     public static Color getByColorOrName(String colorOrName)
     {
-        if(colorOrName.contains("TextFormatting."))
+        if (colorOrName.contains("ChatFormatting."))
         {
-            return getByTextFormatColor((TextFormatting)(Object)colorOrName);
+            return getByTextFormatColor((ChatFormatting) (Object) colorOrName);
         }
         else
         {
@@ -75,7 +75,7 @@ public enum Color
         }
     }
 
-    private Color(TextFormatting formattingName)
+    Color(ChatFormatting formattingName)
     {
         _color = formattingName;
     }

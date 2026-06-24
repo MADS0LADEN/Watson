@@ -9,7 +9,8 @@ import eu.minemania.watson.chat.ChatMessage;
 import eu.minemania.watson.chat.IMatchedChatHandler;
 import eu.minemania.watson.config.Configs;
 import eu.minemania.watson.db.TimeStamp;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 public class RatioAnalysis extends Analysis
 {
@@ -29,7 +30,7 @@ public class RatioAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_HEADER_RATIO, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbHeaderRatio(chat, m);
                 return true;
@@ -39,7 +40,7 @@ public class RatioAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_HEADER_RATIO_CURRENT, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbHeaderRatioCurrent(chat, m);
                 return true;
@@ -49,7 +50,7 @@ public class RatioAnalysis extends Analysis
         IMatchedChatHandler headerHandler = new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 lbHeader(chat, m);
                 return true;
@@ -66,19 +67,19 @@ public class RatioAnalysis extends Analysis
         addMatchedChatHandler(Configs.Analysis.LB_SUM, new IMatchedChatHandler()
         {
             @Override
-            public boolean onMatchedChat(ITextComponent chat, Matcher m)
+            public boolean onMatchedChat(MutableComponent chat, Matcher m)
             {
                 return lbSum(chat, m);
             }
         });
     }
 
-    void lbHeader(ITextComponent chat, Matcher m)
+    void lbHeader(Component chat, Matcher m)
     {
         reset();
     }
 
-    void lbHeaderRatio(ITextComponent chat, Matcher m)
+    void lbHeaderRatio(Component chat, Matcher m)
     {
         reset();
         _parsing = true;
@@ -86,7 +87,7 @@ public class RatioAnalysis extends Analysis
         _beforeMinutes = Integer.parseInt(m.group(2));
     }
 
-    void lbHeaderRatioCurrent(ITextComponent chat, Matcher m)
+    void lbHeaderRatioCurrent(Component chat, Matcher m)
     {
         reset();
         _parsing = true;
@@ -94,7 +95,7 @@ public class RatioAnalysis extends Analysis
         _beforeMinutes = 0;
     }
 
-    boolean lbSum(ITextComponent chat, Matcher m)
+    boolean lbSum(Component chat, Matcher m)
     {
         if(_parsing)
         {
