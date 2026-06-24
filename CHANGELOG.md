@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.16.0+1.21.3] - 2025-07-12
+## [1.17.0+26.1] - 2026-06-24
+
+### Added
+
+- Support for Minecraft 26.1 (Fabric)
+- CoreProtect 23.2 networking API integration (`coreprotect:handshake` and `coreprotect:data` channels)
+- Automatic CoreProtect plugin detection when the server supports networking
+
+### Changed
+
+- Ported from Yarn 1.21.3 mappings to Mojang official mappings for 26.1
+- Updated build toolchain to Gradle 9.4, Loom 1.15, Java 25, and MaLiLib 0.28.1
+- CoreProtect chat parsing patterns updated for placed/broke format used in CoreProtect 23.x
+
 
 ### Added
 

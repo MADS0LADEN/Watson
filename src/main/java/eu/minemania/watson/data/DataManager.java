@@ -38,6 +38,10 @@ import eu.minemania.watson.network.ledger.rollback.PluginRollbackPacket;
 import eu.minemania.watson.network.ledger.rollback.PluginRollbackPacketHandler;
 import eu.minemania.watson.network.ledger.search.PluginSearchPacket;
 import eu.minemania.watson.network.ledger.search.PluginSearchPacketHandler;
+import eu.minemania.watson.network.coreprotect.PluginCoreProtectDataPacket;
+import eu.minemania.watson.network.coreprotect.PluginCoreProtectDataPacketHandler;
+import eu.minemania.watson.network.coreprotect.PluginCoreProtectHandshakePacket;
+import eu.minemania.watson.network.coreprotect.PluginCoreProtectHandshakePacketHandler;
 import eu.minemania.watson.network.watson.world.PluginWorldPacket;
 import eu.minemania.watson.network.watson.world.PluginWorldPacketHandler;
 import eu.minemania.watson.selection.EditSelection;
@@ -82,6 +86,8 @@ public class DataManager implements IDirectoryCache
     private final static PluginRollbackPacketHandler<PluginRollbackPacket> ROLLBACK = PluginRollbackPacketHandler.getInstance();
     private final static PluginSearchPacketHandler<PluginSearchPacket> SEARCH = PluginSearchPacketHandler.getInstance();
     private final static PluginWorldPacketHandler<PluginWorldPacket.Payload> WORLD = PluginWorldPacketHandler.getInstance();
+    private final static PluginCoreProtectHandshakePacketHandler<PluginCoreProtectHandshakePacket.Payload> COREPROTECT_HANDSHAKE = PluginCoreProtectHandshakePacketHandler.getInstance();
+    private final static PluginCoreProtectDataPacketHandler<PluginCoreProtectDataPacket.Payload> COREPROTECT_DATA = PluginCoreProtectDataPacketHandler.getInstance();
 
     private DataManager()
     {
@@ -675,6 +681,8 @@ public class DataManager implements IDirectoryCache
             ROLLBACK.reset(ROLLBACK.getPayloadChannel());
             SEARCH.reset(SEARCH.getPayloadChannel());
             WORLD.reset(WORLD.getPayloadChannel());
+            COREPROTECT_HANDSHAKE.reset(COREPROTECT_HANDSHAKE.getPayloadChannel());
+            COREPROTECT_DATA.reset(COREPROTECT_DATA.getPayloadChannel());
         }
     }
 
@@ -684,11 +692,14 @@ public class DataManager implements IDirectoryCache
         HANDSHAKE.registerPlayReceiver(PluginHandshakePacket.Payload.TYPE, HANDSHAKE::receivePlayPayload);
         RESPONSE.registerPlayReceiver(PluginResponsePacket.Payload.TYPE, RESPONSE::receivePlayPayload);
         WORLD.registerPlayReceiver(PluginWorldPacket.Payload.TYPE, WORLD::receivePlayPayload);
+        COREPROTECT_HANDSHAKE.registerPlayReceiver(PluginCoreProtectHandshakePacket.Payload.TYPE, COREPROTECT_HANDSHAKE::receivePlayPayload);
+        COREPROTECT_DATA.registerPlayReceiver(PluginCoreProtectDataPacket.Payload.TYPE, COREPROTECT_DATA::receivePlayPayload);
     }
 
     public static void onWorldJoin()
     {
         HANDSHAKE.encodePayload(new PluginHandshakePacket(Reference.LEDGER_PROTOCOL, Reference.MOD_VERSION, Reference.MOD_ID));
+        COREPROTECT_HANDSHAKE.encodePayload();
     }
 
     public static void registerPayloads()
@@ -701,6 +712,8 @@ public class DataManager implements IDirectoryCache
         ClientPlayHandler.getInstance().registerClientPlayHandler(ROLLBACK);
         ClientPlayHandler.getInstance().registerClientPlayHandler(SEARCH);
         ClientPlayHandler.getInstance().registerClientPlayHandler(WORLD);
+        ClientPlayHandler.getInstance().registerClientPlayHandler(COREPROTECT_HANDSHAKE);
+        ClientPlayHandler.getInstance().registerClientPlayHandler(COREPROTECT_DATA);
 
         ACTION.registerPlayPayload(PluginActionPacket.Payload.TYPE, PluginActionPacket.Payload.CODEC, PluginActionPacketHandler.TO_CLIENT);
         HANDSHAKE.registerPlayPayload(PluginHandshakePacket.Payload.TYPE, PluginHandshakePacket.Payload.CODEC, PluginHandshakePacketHandler.BOTH_SERVER);
@@ -710,6 +723,8 @@ public class DataManager implements IDirectoryCache
         ROLLBACK.registerPlayPayload(PluginRollbackPacket.TYPE, PluginRollbackPacket.CODEC, PluginRollbackPacketHandler.TO_SERVER);
         SEARCH.registerPlayPayload(PluginSearchPacket.TYPE, PluginSearchPacket.CODEC, PluginSearchPacketHandler.TO_SERVER);
         WORLD.registerPlayPayload(PluginWorldPacket.Payload.TYPE, PluginWorldPacket.Payload.CODEC, PluginWorldPacketHandler.TO_CLIENT);
+        COREPROTECT_HANDSHAKE.registerPlayPayload(PluginCoreProtectHandshakePacket.Payload.TYPE, PluginCoreProtectHandshakePacket.Payload.CODEC, PluginCoreProtectHandshakePacketHandler.BOTH_SERVER);
+        COREPROTECT_DATA.registerPlayPayload(PluginCoreProtectDataPacket.Payload.TYPE, PluginCoreProtectDataPacket.Payload.CODEC, PluginCoreProtectDataPacketHandler.TO_CLIENT);
     }
 
     public static PluginInspectPacketHandler<PluginInspectPacket> getInspectHandler()

@@ -242,6 +242,7 @@
   "watson.message.cp.auto_page.finished": "Auto pages has finished.",
   "watson.message.cp.auto_page.page": "%d / %d",
   "watson.message.cp.auto_page.start": "Auto pages will go thru %d pages.",
+  "watson.message.cp.logged": "logged %s",
   "watson.message.deposit.highest_page": "The highest page number is %d.",
   "watson.message.deposit.next_page": "Use \"/%s ore %d\" to view the next page.",
   "watson.message.deposit.no_diamond": "There are no diamond ore deposits.",
