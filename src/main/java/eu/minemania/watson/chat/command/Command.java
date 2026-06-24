@@ -1,17 +1,15 @@
 package eu.minemania.watson.chat.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-
-import eu.minemania.watson.interfaces.ICommandRemover;
 import fi.dy.masa.malilib.config.options.ConfigString;
 import net.minecraft.client.Minecraft;
-import net.minecraft.command.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
 
 public class Command
 {
-    public static CommandDispatcher<CommandSource> commandDispatcher;
+    public static CommandDispatcher<CommandSourceStack> commandDispatcher;
 
-    public static void registerCommands(CommandDispatcher<CommandSource> dispatcher)
+    public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         ClientCommandManager.clearClientSideCommands();
         WatsonCommand.register(dispatcher);
@@ -20,7 +18,7 @@ public class Command
         CalcCommand.register(dispatcher);
         HighlightCommand.register(dispatcher);
 
-        if (Minecraft.getInstance().isIntegratedServerRunning())
+        if (Minecraft.getInstance().isLocalServer())
         {
 
         }
@@ -28,13 +26,13 @@ public class Command
         commandDispatcher = dispatcher;
     }
 
-    public static void reregisterWatsonCommand(CommandDispatcher<CommandSource> dispatcher, ConfigString command)
+    public static void reregisterWatsonCommand(CommandDispatcher<CommandSourceStack> dispatcher, ConfigString command)
     {
-        ClientCommandManager.getClientSideCommands().remove(command.getOldStringValue());
-        ((ICommandRemover) dispatcher.getRoot()).removeChild(command.getOldStringValue());
+        ClientCommandManager.getClientSideCommands().remove(command.getStringValue());
+        CommandRemoval.removeCommand(dispatcher.getRoot(), command.getStringValue());
         WatsonCommand.register(dispatcher);
 
-        if (Minecraft.getInstance().isIntegratedServerRunning())
+        if (Minecraft.getInstance().isLocalServer())
         {
 
         }

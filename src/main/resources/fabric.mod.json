@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "watson",
+  "name": "Watson",
+  "version": "${mod_version}",
+  "description": "Updated Watson that displays Ledger, LogBlock and CoreProtect query results in 3D.",
+  "authors": [
+    "Annevdl29"
+  ],
+  "contact": {
+    "homepage": "",
+    "issues": "https://github.com/vacla/Watson/issues",
+    "sources": "https://github.com/vacla/Watson",
+    "twitter": "https://twitter.com/ArneLangenbergh",
+    "discord": "https://discord.gg/VTHVVgt"
+  },
+  "license": "MIT",
+  "icon": "assets/watson/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "eu.minemania.watson.Watson"
+    ],
+    "modmenu": [
+      "eu.minemania.watson.compat.modmenu.ModMenuImpl"
+    ]
+  },
+  "mixins": [
+    "mixins.watson.json"
+  ],
+  "depends": {
+    "minecraft": "${minecraft_version_dependency}",
+    "malilib": "${malilib_mod_version}"
+  }
+}

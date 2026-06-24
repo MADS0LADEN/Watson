@@ -1,8 +1,8 @@
 package eu.minemania.watson.chat;
 
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.network.chat.MutableComponent;
 
 public interface IChatHandler
 {
-    public boolean onChat(ITextComponent chat);
+    boolean onChat(MutableComponent chat);
 }

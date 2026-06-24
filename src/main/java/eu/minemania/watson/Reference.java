@@ -1,8 +1,12 @@
 package eu.minemania.watson;
 
+import fi.dy.masa.malilib.util.StringUtils;
+
 public class Reference
 {
     public static final String MOD_ID = "watson";
     public static final String MOD_NAME = "Watson";
-    public static final String MOD_VERSION = "@MOD_VERSION@";
+    public static final String MOD_VERSION = StringUtils.getModVersionString(MOD_ID);
+    public static final int LEDGER_PROTOCOL = 3;
+    public static final int COREPROTECT_PROTOCOL = 1;
 }

@@ -1,38 +1,42 @@
 package eu.minemania.watson.chat.command;
 
-import net.minecraft.command.CommandSource;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
-public class WatsonCommandBase {
+public class WatsonCommandBase
+{
+    public static void localOutput(CommandSourceStack sender, String message)
+    {
+        sendColoredText(sender, ChatFormatting.AQUA, message);
+    }
 
-	public static void localOutput(CommandSource sender, String message) {
-		sendColoredText(sender, TextFormatting.AQUA, message);
-	}
+    public static void localOutputT(CommandSourceStack sender, String translationKey, Object... args)
+    {
+        sendColoredText(sender, ChatFormatting.AQUA, Component.translatable(translationKey, args));
+    }
 
-	public static void localOutputT(CommandSource sender, String translationKey, Object... args) {
+    public static void localError(CommandSourceStack sender, String message)
+    {
+        sendColoredText(sender, ChatFormatting.DARK_RED, message);
+    }
 
-		sendColoredText(sender, TextFormatting.AQUA, new TextComponentTranslation(translationKey, args));
-	}
+    public static void localErrorT(CommandSourceStack sender, String translationKey, Object... args)
+    {
+        sendColoredText(sender, ChatFormatting.DARK_RED, Component.translatable(translationKey, args));
+    }
 
-	public static void localError(CommandSource sender, String message) {
-		sendColoredText(sender, TextFormatting.DARK_RED, message);
-	}
+    public static void sendColoredText(CommandSourceStack sender, ChatFormatting color, String message)
+    {
+        MutableComponent chat = Component.literal(message);
+        chat = chat.withStyle(color);
+        sender.sendSystemMessage(chat);
+    }
 
-	public static void localErrorT(CommandSource sender, String translationKey, Object... args) {
-		sendColoredText(sender, TextFormatting.DARK_RED, new TextComponentTranslation(translationKey, args));
-	}
-
-	public static void sendColoredText(CommandSource sender, TextFormatting color, String message) {
-		TextComponentString chat = new TextComponentString(message);
-		chat.applyTextStyle(color);
-		sender.getEntity().sendMessage(chat);
-	}
-
-	public static void sendColoredText(CommandSource sender, TextFormatting color, ITextComponent component) {
-		component.applyTextStyle(color);
-		sender.getEntity().sendMessage(component);
-	}
+    public static void sendColoredText(CommandSourceStack sender, ChatFormatting color, MutableComponent component)
+    {
+        component = component.withStyle(color);
+        sender.sendSystemMessage(component);
+    }
 }

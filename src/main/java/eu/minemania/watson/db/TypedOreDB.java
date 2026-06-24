@@ -2,17 +2,16 @@ package eu.minemania.watson.db;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.TreeSet;
 
 public class TypedOreDB
 {
     protected HashMap<IntCoord, OreBlock> _oreBlocks;
-    protected TreeSet<OreDeposit> _oreDeposits = new TreeSet<OreDeposit>();
+    protected TreeSet<OreDeposit> _oreDeposits = new TreeSet<>();
 
     public TypedOreDB(int initialCapacity)
     {
-        _oreBlocks = new HashMap<IntCoord, OreBlock>(initialCapacity);
+        _oreBlocks = new HashMap<>(initialCapacity);
     }
 
     public void clear()
@@ -31,51 +30,9 @@ public class TypedOreDB
         return _oreDeposits.size();
     }
 
-    public OreDeposit getOreDeposit(int index)
-    {
-        if(index<1)
-        {
-            index = getOreDepositCount();
-        }
-        else if (index > getOreDepositCount())
-        {
-            index = 1;
-        }
-        if(index > getOreDepositCount() / 2)
-        {
-            int currentIndex = getOreDepositCount();
-            Iterator<OreDeposit> it = _oreDeposits.descendingIterator();
-            while (it.hasNext())
-            {
-                OreDeposit deposit = it.next();
-                if(currentIndex == index)
-                {
-                    return deposit;
-                }
-                --currentIndex;
-            }
-            throw new IllegalArgumentException("index > TypedOreDB.getOreDepositCount()");
-        }
-        else
-        {
-            int currentIndex = 1;
-            Iterator<OreDeposit> it = _oreDeposits.iterator();
-            while (it.hasNext())
-            {
-                OreDeposit deposit = it.next();
-                if(currentIndex == index)
-                {
-                    return deposit;
-                }
-                ++currentIndex;
-            }
-            throw new IllegalStateException("shouldn't happen");
-        }
-    }
-
     public void addBlockEdit(BlockEdit edit)
     {
-        IntCoord coord = new IntCoord(edit.x, edit.y, edit.z);
+        IntCoord coord = new IntCoord(edit.x, edit.y, edit.z, edit.world);
         OreBlock block = getOreBlock(coord);
         if (block == null)
         {
@@ -83,7 +40,7 @@ public class TypedOreDB
             _oreBlocks.put(coord, block);
 
             TreeSet<OreDeposit> deposits = getAdjacentDeposits(coord);
-            if(deposits.size() == 0)
+            if (deposits.size() == 0)
             {
                 OreDeposit deposit = new OreDeposit();
                 deposit.addOreBlock(block);
@@ -98,15 +55,15 @@ public class TypedOreDB
             }
             else
             {
-                ArrayList<OreBlock> blocks = new ArrayList<OreBlock>();
-                for(OreDeposit deposit : deposits)
+                ArrayList<OreBlock> blocks = new ArrayList<>();
+                for (OreDeposit deposit : deposits)
                 {
                     _oreDeposits.remove(deposit);
                     blocks.addAll(deposit.getOreBlocks());
                 }
                 OreDeposit merged = new OreDeposit();
                 merged.addOreBlock(block);
-                for(OreBlock b : blocks)
+                for (OreBlock b : blocks)
                 {
                     merged.addOreBlock(b);
                 }
@@ -117,17 +74,17 @@ public class TypedOreDB
 
     public void removeDeposits(String player)
     {
-        ArrayList<BlockEdit> retainedEdits = new ArrayList<BlockEdit>();
+        ArrayList<BlockEdit> retainedEdits = new ArrayList<>();
         for (OreBlock block : _oreBlocks.values())
         {
-            if(!block.getEdit().player.equalsIgnoreCase(player))
+            if (!block.getEdit().player.equalsIgnoreCase(player))
             {
                 retainedEdits.add(block.getEdit());
             }
         }
         _oreBlocks.clear();
         _oreDeposits.clear();
-        for(BlockEdit edit : retainedEdits)
+        for (BlockEdit edit : retainedEdits)
         {
             addBlockEdit(edit);
         }
@@ -140,25 +97,22 @@ public class TypedOreDB
 
     protected TreeSet<OreDeposit> getAdjacentDeposits(IntCoord location)
     {
-        TreeSet<OreDeposit> deposits = new TreeSet<OreDeposit>();
+        TreeSet<OreDeposit> deposits = new TreeSet<>();
         IntCoord adjacent = new IntCoord();
         for (int dx = -1; dx <= 1; ++dx)
         {
-            for(int dy = -1; dy <= 1; ++dy)
+            for (int dy = -1; dy <= 1; ++dy)
             {
-                for(int dz = -1; dz <= 1; ++dz)
+                for (int dz = -1; dz <= 1; ++dz)
                 {
-                    if(dx == 0 && dy == 0 && dz == 0)
-                    {
-                        continue;
-                    }
-                    else
+                    if (dx != 0 || dy != 0 || dz != 0)
                     {
                         adjacent.setX(location.getX() + dx);
                         adjacent.setY(location.getY() + dy);
                         adjacent.setZ(location.getZ() + dz);
+                        adjacent.setWorld(location.getWorld());
                         OreBlock neighbour = getOreBlock(adjacent);
-                        if(neighbour != null)
+                        if (neighbour != null)
                         {
                             deposits.add(neighbour.getDeposit());
                         }

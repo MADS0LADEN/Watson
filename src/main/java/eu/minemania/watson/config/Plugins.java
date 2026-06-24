@@ -5,15 +5,17 @@ import fi.dy.masa.malilib.util.StringUtils;
 
 public enum Plugins implements IConfigOptionListEntry
 {
-    NULL   ("No plugin",   "watson.label.plugin.no_plugin"),
-    COREPROTECT   ("CoreProtect",   "watson.label.plugin.coreprotect"),
-    LOGBLOCK ("LogBlock", "watson.label.plugin.logblock"),
-    MODMODE    ("ModMode",    "watson.label.plugin.modmode");
+    NULL("No plugin", "watson.label.plugin.no_plugin"),
+    COREPROTECT("CoreProtect", "watson.label.plugin.coreprotect"),
+    LOGBLOCK("LogBlock", "watson.label.plugin.logblock"),
+    MODMODE("ModMode", "watson.label.plugin.modmode"),
+    PRISM("Prism", "watson.label.plugin.prism"),
+    LEDGER("Ledger", "watson.label.plugin.ledger");
 
     private final String configString;
     private final String translationKey;
 
-    private Plugins(String configString, String translationKey)
+    Plugins(String configString, String translationKey)
     {
         this.configString = configString;
         this.translationKey = translationKey;

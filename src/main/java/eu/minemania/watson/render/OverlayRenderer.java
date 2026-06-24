@@ -4,10 +4,11 @@ import java.util.Arrays;
 
 import eu.minemania.watson.config.Configs;
 import eu.minemania.watson.data.DataManager;
+import eu.minemania.watson.db.LocalAnnotation;
 import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.util.Mth;
 
 public class OverlayRenderer
 {
@@ -45,16 +46,16 @@ public class OverlayRenderer
         loginTime = System.currentTimeMillis();
     }
 
-    public static void renderOverlays(Minecraft mc, float partialTicks)
+    public static void renderOverlays(Minecraft mc)
     {
-        Entity entity = mc.getRenderViewEntity();
+        Entity entity = mc.getCameraEntity();
 
-        if (canRender == false)
+        if (!canRender)
         {
             // Don't render before the player has been placed in the actual proper position,
             // otherwise some of the renderers mess up.
             // The magic 8.5, 65, 8.5 comes from the WorldClient constructor
-            if (System.currentTimeMillis() - loginTime >= 5000 || entity.posX != 8.5 || entity.posY != 65 || entity.posZ != 8.5)
+            if (System.currentTimeMillis() - loginTime >= 5000 || entity.getX() != 8.5 || entity.getY() != 65 || entity.getZ() != 8.5)
             {
                 canRender = true;
             }
@@ -63,22 +64,20 @@ public class OverlayRenderer
                 return;
             }
         }
-        double dx = entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * partialTicks;
-        double dy = entity.lastTickPosY + (entity.posY - entity.lastTickPosY) * partialTicks;
-        double dz = entity.lastTickPosZ + (entity.posZ - entity.lastTickPosZ) * partialTicks;
 
-        DataManager.getEditSelection().getBlockEditSet().getOreDB().drawDepositLabels(dx, dy, dz);
-        DataManager.getEditSelection().getBlockEditSet().drawAnnotations(dx, dy, dz);
+        DataManager.getEditSelection().getBlockEditSet().getOreDB().drawDepositLabels();
+        DataManager.getEditSelection().getBlockEditSet().drawAnnotations();
+        LocalAnnotation.getInstance().drawAnnotations();
     }
 
     public static void drawBillboard(double x, double y, double z, double scale, String text)
     {
-        final float scaled = MathHelper.clamp((float) scale, 0.01f, 1f);
+        final float scaled = Mth.clamp((float) scale, 0.01f, 1f);
         Minecraft mc = Minecraft.getInstance();
-        Entity entity = mc.getRenderViewEntity();
-        if(entity != null)
+        Entity entity = mc.getCameraEntity();
+        if (entity != null)
         {
-            RenderUtils.drawTextPlate(Arrays.asList(text), x, y, z, entity.rotationYaw, entity.rotationPitch, scaled, Configs.Generic.BILLBOARD_FOREGROUND.getIntegerValue(), Configs.Generic.BILLBOARD_BACKGROUND.getIntegerValue(), true);
+            RenderUtils.drawTextPlate(Arrays.asList(text), x, y, z, entity.getYRot(), entity.getXRot(), scaled, Configs.Generic.BILLBOARD_FOREGROUND.getIntegerValue(), Configs.Generic.BILLBOARD_BACKGROUND.getIntegerValue(), true);
         }
     }
 }

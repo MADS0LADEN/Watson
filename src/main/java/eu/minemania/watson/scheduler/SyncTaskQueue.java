@@ -4,8 +4,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SyncTaskQueue
 {
-    private static SyncTaskQueue INSTANCE = new SyncTaskQueue();
-    protected ConcurrentLinkedQueue<Runnable> _taskQueue = new ConcurrentLinkedQueue<Runnable>();
+    private static final SyncTaskQueue INSTANCE = new SyncTaskQueue();
+    protected ConcurrentLinkedQueue<Runnable> _taskQueue = new ConcurrentLinkedQueue<>();
 
     public static SyncTaskQueue getInstance()
     {
@@ -19,7 +19,7 @@ public class SyncTaskQueue
 
     public void runTasks()
     {
-        for (;;)
+        for (; ; )
         {
             Runnable task = _taskQueue.poll();
             if (task == null)

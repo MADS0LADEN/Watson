@@ -2,10 +2,7 @@ package eu.minemania.watson.db;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 
 import eu.minemania.watson.Watson;
 import eu.minemania.watson.analysis.ServerTime;
@@ -16,14 +13,15 @@ import eu.minemania.watson.config.Configs;
 import eu.minemania.watson.data.DataManager;
 import eu.minemania.watson.render.OverlayRenderer;
 import eu.minemania.watson.selection.EditSelection;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.ChatFormatting;
 
 public class OreDB
 {
-    protected LinkedHashMap<WatsonBlock, TypedOreDB> _db = new LinkedHashMap<WatsonBlock, TypedOreDB>();
-    protected LinkedHashMap<WatsonBlock, Color> _chatColors = new LinkedHashMap<WatsonBlock, Color>();
+    protected LinkedHashMap<WatsonBlock, TypedOreDB> _db = new LinkedHashMap<>();
+    protected LinkedHashMap<WatsonBlock, Color> _chatColors = new LinkedHashMap<>();
     protected int _tpIndex = 0;
-    protected ArrayList<OreDeposit> _oreDepositSequence = new ArrayList<OreDeposit>();
+    protected ArrayList<OreDeposit> _oreDepositSequence = new ArrayList<>();
     protected boolean _oreDepositSequenceChanged = true;
     protected boolean _lastTimeOrderedDeposits = true;
 
@@ -32,28 +30,60 @@ public class OreDB
         WatsonBlockRegistery types = WatsonBlockRegistery.getInstance();
 
         //TODO add list malilib custom color
-        _db.put(types.getWatsonBlockByName("minecraft:diamond_ore"), new TypedOreDB(200));
-        _db.put(types.getWatsonBlockByName("minecraft:emerald_ore"), new TypedOreDB(200));
-        _db.put(types.getWatsonBlockByName("minecraft:iron_ore"), new TypedOreDB(400));
-        _db.put(types.getWatsonBlockByName("minecraft:gold_ore"), new TypedOreDB(200));
-        _db.put(types.getWatsonBlockByName("minecraft:lapis_ore"), new TypedOreDB(200));
-        _db.put(types.getWatsonBlockByName("minecraft:redstone_ore"), new TypedOreDB(200));
-        _db.put(types.getWatsonBlockByName("minecraft:coal_ore"), new TypedOreDB(800));
-        _db.put(types.getWatsonBlockByName("minecraft:nether_quartz_ore"), new TypedOreDB(400));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DIAMOND_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.EMERALD_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.IRON_ORE), new TypedOreDB(400));
+        _db.put(types.getWatsonBlockByBlock(Blocks.GOLD_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.LAPIS_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.REDSTONE_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.COAL_ORE), new TypedOreDB(800));
+        _db.put(types.getWatsonBlockByBlock(Blocks.NETHER_QUARTZ_ORE), new TypedOreDB(400));
+        _db.put(types.getWatsonBlockByBlock(Blocks.ANCIENT_DEBRIS), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.GILDED_BLACKSTONE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.NETHER_GOLD_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.COPPER_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_DIAMOND_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_EMERALD_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_IRON_ORE), new TypedOreDB(400));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_GOLD_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_LAPIS_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_REDSTONE_ORE), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_COAL_ORE), new TypedOreDB(800));
+        _db.put(types.getWatsonBlockByBlock(Blocks.SMALL_AMETHYST_BUD), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.MEDIUM_AMETHYST_BUD), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.LARGE_AMETHYST_BUD), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.AMETHYST_CLUSTER), new TypedOreDB(200));
+        _db.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_COPPER_ORE), new TypedOreDB(200));
 
-        _chatColors.put(types.getWatsonBlockByName("minecraft:diamond_ore"), Color.aqua);
-        _chatColors.put(types.getWatsonBlockByName("minecraft:emerald_ore"), Color.green);
-        _chatColors.put(types.getWatsonBlockByName("minecraft:iron_ore"), Color.gold);
-        _chatColors.put(types.getWatsonBlockByName("minecraft:gold_ore"), Color.yellow);
-        _chatColors.put(types.getWatsonBlockByName("minecraft:lapis_ore"), Color.blue);
-        _chatColors.put(types.getWatsonBlockByName("minecraft:redstone_ore"), Color.darkred);
-        _chatColors.put(types.getWatsonBlockByName("minecraft:coal_ore"), Color.darkgray);
-        _chatColors.put(types.getWatsonBlockByName("minecraft:nether_quartz_ore"), Color.white);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DIAMOND_ORE), Color.aqua);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.EMERALD_ORE), Color.green);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.IRON_ORE), Color.gold);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.GOLD_ORE), Color.yellow);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.LAPIS_ORE), Color.blue);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.REDSTONE_ORE), Color.darkred);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.COAL_ORE), Color.darkgray);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.NETHER_QUARTZ_ORE), Color.white);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.ANCIENT_DEBRIS), Color.gray);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.GILDED_BLACKSTONE), Color.yellow);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.NETHER_GOLD_ORE), Color.yellow);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.COPPER_ORE), Color.yellow);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_DIAMOND_ORE), Color.aqua);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_EMERALD_ORE), Color.green);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_IRON_ORE), Color.gold);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_GOLD_ORE), Color.yellow);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_LAPIS_ORE), Color.blue);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_REDSTONE_ORE), Color.darkred);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_COAL_ORE), Color.darkgray);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.SMALL_AMETHYST_BUD), Color.lightpurple);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.MEDIUM_AMETHYST_BUD), Color.lightpurple);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.LARGE_AMETHYST_BUD), Color.lightpurple);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.AMETHYST_CLUSTER), Color.lightpurple);
+        _chatColors.put(types.getWatsonBlockByBlock(Blocks.DEEPSLATE_COPPER_ORE), Color.yellow);
     }
 
     public void clear()
     {
-        for(TypedOreDB db : _db.values())
+        for (TypedOreDB db : _db.values())
         {
             db.clear();
         }
@@ -70,31 +100,31 @@ public class OreDB
     public void listDeposits(int page)
     {
         int depositCount = getOreDepositCount();
-        if(depositCount == 0)
+        if (depositCount == 0)
         {
-            ChatMessage.localOutput("There are no ore deposits.", true);
+            ChatMessage.localOutputT("watson.message.deposit.none");
         }
         else
         {
-            int pages = (depositCount + Configs.Generic.PAGE_LINES.getIntegerValue() - 1) / Configs.Generic.PAGE_LINES.getIntegerValue();
-            if(page > pages)
+            int pages = (depositCount + Configs.Plugin.PAGE_LINES.getIntegerValue() - 1) / Configs.Plugin.PAGE_LINES.getIntegerValue();
+            if (page > pages)
             {
-                ChatMessage.localError(String.format(Locale.US, "The highest page number is %d.", pages), true);
+                ChatMessage.localErrorT("watson.message.deposit.highest_page", pages);
             }
             else
             {
-                if(depositCount == 1)
+                if (depositCount == 1)
                 {
-                    ChatMessage.localOutput("There is 1 ore deposit", true);
+                    ChatMessage.localOutputT("watson.message.deposit.ore.1");
                 }
                 else
                 {
-                    ChatMessage.localOutput(String.format(Locale.US, "There are %d ore deposits.", depositCount), true);
+                    ChatMessage.localOutputT("watson.message.deposit.ore.more", depositCount);
                 }
 
                 ArrayList<OreDeposit> deposits = getOreDepositSequence();
-                int first = 1 + (page - 1) * Configs.Generic.PAGE_LINES.getIntegerValue();
-                int last = Math.min(first + Configs.Generic.PAGE_LINES.getIntegerValue() - 1, getOreDepositCount());
+                int first = 1 + (page - 1) * Configs.Plugin.PAGE_LINES.getIntegerValue();
+                int last = Math.min(first + Configs.Plugin.PAGE_LINES.getIntegerValue() - 1, getOreDepositCount());
                 for (int id = first; id <= last; ++id)
                 {
                     OreDeposit deposit = deposits.get(id - 1);
@@ -103,14 +133,14 @@ public class OreDB
                     BlockEdit edit = block.getEdit();
                     WatsonBlock watsonblock = edit.block;
                     String player = edit.player;
-                    TextFormatting strike = edit.playereditSet.isVisible() == true ? null : TextFormatting.STRIKETHROUGH;
-                    String line = String.format(Locale.US, "(%3d) %s (% 5d % 3d % 5d) %s [%2d] %s", id, TimeStamp.formatMonthDayTime(time), block.getLocation().getX(), block.getLocation().getY(), block.getLocation().getZ(), watsonblock.getName(), deposit.getBlockCount(), player);
+                    ChatFormatting strike = edit.playereditSet.isVisible() ? null : ChatFormatting.STRIKETHROUGH;
+                    String line = String.format("(%3d) %s (%5d %3d %5d %s) %s [%2d] %s", id, TimeStamp.formatMonthDayTime(time), block.getLocation().getX(), block.getLocation().getY(), block.getLocation().getZ(), block.getLocation().getWorld(), watsonblock.getName(), deposit.getBlockCount(), player);
                     ChatMessage.sendToLocalChat(_chatColors.get(watsonblock).getColor(), strike, line, true);
                 }
                 if (page < pages)
                 {
-                    ChatMessage.localOutput(String.format(Locale.US, "Page %d of %d.", page, pages), true);
-                    ChatMessage.localOutput(String.format(Locale.US, "Use \"/%s ore %d\" to view the next page", Configs.Generic.WATSON_PREFIX.getStringValue(), (page+1)), true);
+                    ChatMessage.localOutputT("watson.message.blockedit.pages", page, pages);
+                    ChatMessage.localOutputT("watson.message.deposit.next_page", Configs.Generic.WATSON_PREFIX.getStringValue(), (page + 1));
                 }
             }
         }
@@ -129,7 +159,7 @@ public class OreDB
 
     public void removeDeposits(String player)
     {
-        for(TypedOreDB db : _db.values())
+        for (TypedOreDB db : _db.values())
         {
             db.removeDeposits(player);
         }
@@ -148,17 +178,17 @@ public class OreDB
 
     public void tpIndex(int index)
     {
-        if(getOreDepositCount() == 0)
+        if (getOreDepositCount() == 0)
         {
-            ChatMessage.localError("There are no ore deposits to teleport to.", true);
+            ChatMessage.localErrorT("watson.message.deposit.no_teleport");
         }
         else
         {
             _tpIndex = index = limitOreDepositIndex(index);
             OreDeposit deposit = getOreDeposit(index);
             IntCoord coord = deposit.getKeyOreBlock().getLocation();
-            Teleport.teleport(coord.getX(), coord.getY(), coord.getZ());
-            ChatMessage.localOutput(String.format(Locale.US, "Teleporting you to ore #%d", index), true);
+            Teleport.teleport(coord.getX(), coord.getY(), coord.getZ(), coord.getWorld());
+            ChatMessage.localOutputT("watson.message.deposit.teleport", index);
             EditSelection selection = DataManager.getEditSelection();
             selection.selectBlockEdit(deposit.getKeyOreBlock().getEdit());
         }
@@ -169,7 +199,7 @@ public class OreDB
         ServerTime.getInstance().queryServerTime(false);
         TypedOreDB diamonds = getDB(WatsonBlockRegistery.getInstance().getWatsonBlockByName("minecraft:diamond_ore"));
 
-        if(diamonds.getOreDepositCount() != 0)
+        if (diamonds.getOreDepositCount() != 0)
         {
             showRatio(diamonds.getOreDeposits().first(), diamonds.getOreDeposits().last());
             int count = 0;
@@ -179,16 +209,16 @@ public class OreDB
             for (OreDeposit deposit : diamonds.getOreDeposits())
             {
                 long depositTime = deposit.getKeyOreBlock().getEdit().time;
-                if(first == null)
+                if (first == null)
                 {
                     first = last = deposit;
                     count = 1;
                 }
                 else
                 {
-                    if(Math.abs(depositTime -lastTime) > 7 * 60 * 1000 || deposit == diamonds.getOreDeposits().last())
+                    if (Math.abs(depositTime - lastTime) > 7 * 60 * 1000 || deposit == diamonds.getOreDeposits().last())
                     {
-                        if(deposit == diamonds.getOreDeposits().last())
+                        if (deposit == diamonds.getOreDeposits().last())
                         {
                             last = deposit;
                         }
@@ -210,7 +240,7 @@ public class OreDB
         }
         else
         {
-            ChatMessage.localOutput("There are no diamond ore deposits.", true);
+            ChatMessage.localOutputT("watson.message.deposit.no_diamond");
         }
     }
 
@@ -241,7 +271,7 @@ public class OreDB
         try
         {
             WatsonBlock mergedBlock = edit.block;
-            if(!edit.creation && isOre(mergedBlock))
+            if (!edit.isCreated() && isOre(mergedBlock))
             {
                 TypedOreDB db = getDB(mergedBlock);
                 db.addBlockEdit(edit);
@@ -254,23 +284,26 @@ public class OreDB
         }
     }
 
-    public void drawDepositLabels(double dx, double dy, double dz)
+    public void drawDepositLabels()
     {
-        if(Configs.Generic.LABEL_SHOWN.getBooleanValue())
+        if (Configs.Edits.LABEL_SHOWN.getBooleanValue())
         {
             int id = 1;
             StringBuilder label = new StringBuilder();
             for (OreDeposit deposit : getOreDepositSequence())
             {
                 OreBlock block = deposit.getKeyOreBlock();
-                if(block.getEdit().playereditSet.isVisible())
+                if (DataManager.getWorldPlugin().isEmpty() || DataManager.getWorldPlugin().equals(block._location.getWorld()))
                 {
-                    label.setLength(0);
-                    label.ensureCapacity(4);
-                    label.append(id);
-                    OverlayRenderer.drawBillboard(block.getLocation().getX() - dx + 0.5, block.getLocation().getY() - dy + 0.5, block.getLocation().getZ() - dz + 0.5, 0.03, label.toString());
+                    if (block.getEdit().playereditSet.isVisible())
+                    {
+                        label.setLength(0);
+                        label.ensureCapacity(4);
+                        label.append(id);
+                        OverlayRenderer.drawBillboard(block.getLocation().getX() + 0.5, block.getLocation().getY() + 0.5, block.getLocation().getZ() + 0.5, 0.03, label.toString());
+                    }
+                    ++id;
                 }
-                ++id;
             }
         }
     }
@@ -292,9 +325,12 @@ public class OreDB
         String sinceTime = TimeStamp.formatQueryTime(startTime.getTimeInMillis());
         String beforeTime = TimeStamp.formatQueryTime(endTime.getTimeInMillis());
 
-        String query = String.format(Locale.US, "/lb player %s since %s before %s sum b block stone diamond_ore", player, sinceTime, beforeTime);
-        Watson.logger.debug(query);
-        ChatMessage.getInstance().serverChat(query);
+        String query = String.format("lb player %s since %s before %s sum b block stone diamond_ore", player, sinceTime, beforeTime);
+        if (Configs.Generic.DEBUG.getBooleanValue())
+        {
+            Watson.logger.info(query);
+        }
+        ChatMessage.getInstance().serverChat(query, false);
     }
 
     protected TypedOreDB getDB(WatsonBlock block)
@@ -309,7 +345,7 @@ public class OreDB
 
     protected int limitOreDepositIndex(int index)
     {
-        if(index < 1)
+        if (index < 1)
         {
             return getOreDepositCount();
         }
@@ -325,32 +361,22 @@ public class OreDB
 
     protected ArrayList<OreDeposit> getOreDepositSequence()
     {
-        if(_lastTimeOrderedDeposits != Configs.Generic.TIME_ORDERED_DEPOSITS.getBooleanValue())
+        if (_lastTimeOrderedDeposits != Configs.Edits.TIME_ORDERED_DEPOSITS.getBooleanValue())
         {
             _oreDepositSequenceChanged = true;
         }
-        if(_oreDepositSequenceChanged)
+        if (_oreDepositSequenceChanged)
         {
             _oreDepositSequenceChanged = false;
-            _lastTimeOrderedDeposits = Configs.Generic.TIME_ORDERED_DEPOSITS.getBooleanValue();
+            _lastTimeOrderedDeposits = Configs.Edits.TIME_ORDERED_DEPOSITS.getBooleanValue();
             _oreDepositSequence.clear();
-            for(TypedOreDB db : _db.values())
+            for (TypedOreDB db : _db.values())
             {
-                for(OreDeposit deposit : db.getOreDeposits())
-                {
-                    _oreDepositSequence.add(deposit);
-                }
+                _oreDepositSequence.addAll(db.getOreDeposits());
             }
-            if(Configs.Generic.TIME_ORDERED_DEPOSITS.getBooleanValue())
+            if (Configs.Edits.TIME_ORDERED_DEPOSITS.getBooleanValue())
             {
-                Collections.sort(_oreDepositSequence, new Comparator<OreDeposit>()
-                {
-                    @Override
-                    public int compare(OreDeposit o1, OreDeposit o2)
-                    {
-                        return Long.signum(o1.getEarliestEdit().time - o2.getEarliestEdit().time);
-                    }
-                });
+                _oreDepositSequence.sort((o1, o2) -> Long.signum(o1.getEarliestEdit().time - o2.getEarliestEdit().time));
             }
         }
         return _oreDepositSequence;
